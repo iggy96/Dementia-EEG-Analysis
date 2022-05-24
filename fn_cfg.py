@@ -369,6 +369,7 @@ class importFile:
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_ntrig]]  
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
                 rawEOG = rawData[:,[csm_ntrig]]
+            
             elif len(rawData.T)==5:
                 csm_ntrig = 4
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_ntrig]]  
@@ -378,7 +379,7 @@ class importFile:
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_eog2,csm_ntrig]]  
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
                 rawEOG = rawData[:,[csm_eog1,csm_eog2]]
-            eeg_eog = np.concatenate((rawEEG,rawEOG),axis=1)
+            rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
             # time period of scan
             fs = gtec['fs']
             sfreq = fs
@@ -386,25 +387,7 @@ class importFile:
             stop = dataRows/sfreq 
             Ts = np.arange(0,stop,dt) 
             Ts = Ts.reshape((len(Ts)),1)
-
-            # Plot raw eeg & eog data
-            x,y = Ts,eeg_eog
-            x_lim = [x[0],x[-1]]
-            if dispIMG == True:
-                nrows,ncols=int(len(y.T)),1
-                fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-                fig.suptitle('Raw EEG & EOG Data')
-                for i, axs in enumerate(axs.flatten()):
-                    axs.plot(x, y[:,i], color=pltclr[i])
-                    axs.set_title(titles[i])
-                    axs.set_ylim([np.max(y[:,i])+1000,np.min(y[:,i])-1000])
-                    axs.set_xlim([x_lim[0],x_lim[1]])
-                    axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                    axs.label_outer()
-            elif dispIMG == False:
-                pass
-
-            return eeg_eog,rawEEG,Ts,trig,rawEOG
+            return rawEEG, rawEOG,rawEEGEOG,Ts,trig
 
 class filters:
     # filters for EEG data
@@ -2760,151 +2743,6 @@ def ebs(parameter,mean,max,min):
             score = (round((1 - abs((mean-best)/(max-min))).item(),2))*100
     return score
 
-def sngChanAvgBandPower(data,fs,low,high,win):            
-    freqs, psd = signal.welch(data,fs,nperseg=win)
-    idx_freqBands = np.logical_and(freqs >= low, freqs <= high) 
-    freq_res = freqs[1] - freqs[0]                                  
-    freqBand_power = round(simps(psd[idx_freqBands],dx=freq_res),3)
-    peakPSD = round(np.amax(psd[idx_freqBands]),3)      
-    return freqBand_power,freqs,psd,idx_freqBands,peakPSD
-
-def average_Peak_BandPower(data,fs,low,high,win,dispIMG,figsize,chanTitle,showResult):
-    # provides array for average band power
-    # provides array holding peak band power
-    def absPower(data,fs,low,high,win):                                                 
-        freqs, psd = signal.welch(data,fs,nperseg=win)
-        idx_freqBands = np.logical_and(freqs >= low, freqs <= high) 
-        freq_res = freqs[1] - freqs[0]                                  
-        freqBand_power = round(simps(psd[idx_freqBands],dx=freq_res),3)
-        peakPSD = round(np.amax(psd[idx_freqBands]),3)      
-        return freqBand_power,freqs,psd,idx_freqBands,peakPSD
-
-    y = data
-    freqBand_power,freqs,psd,idx_freqBands,peakPSD = [],[],[],[],[]
-    for i in range(len(y.T)):
-        freqBand_power.append((absPower(y[:,i],fs,low,high,win))[0])
-        freqs.append((absPower(y[:,i],fs,low,high,win))[1])
-        psd.append((absPower(y[:,i],fs,low,high,win))[2])
-        idx_freqBands.append((absPower(y[:,i],fs,low,high,win))[3])
-        peakPSD.append((absPower(y[:,i],fs,low,high,win))[4])
-    freqBand_power,freqs,psd,idx_freqBands,peakPSD = np.array(freqBand_power).T,np.array(freqs).T,np.array(psd).T,np.array(idx_freqBands).T,np.array(peakPSD).T
-
-    if dispIMG == True:
-        # Plot of band passed output
-        x_lim = [freqs[0],freqs[-1]]
-        if len(y.T) % 2 != 0:
-            nrows,ncols=1,int(len(y.T))
-        elif len(y.T) % 2 == 0:
-            nrows,ncols=2,int(len(y.T)/2)
-        fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-        fig.suptitle('PSD Plot')
-        for i, axs in enumerate(axs.flatten()):
-            axs.plot(freqs[:,i], psd[:,i], lw=2, color='k')
-            axs.fill_between(freqs[:,i], psd[:,i], where=idx_freqBands[:,i], color='orange')
-            axs.set_title(chanTitle[i])
-            axs.set_ylim([0,np.max(psd[:,i])+200])
-            axs.set_xlim(low-0.5,high)
-            axs.set(xlabel='Frequency (Hz)', ylabel='Power spectral density (dBm/Hz)')
-            axs.label_outer()
-    elif dispIMG == False:
-        pass
-
-    if showResult == True:
-        for i in range(len(y.T)):
-            print (chanTitle[i],':','Average Band Power:',(freqBand_power[i]).item(),'dBm/Hz','|', 'Peak Band Power:',(peakPSD[i]).item(),'dBm/Hz')
-    elif showResult == False:
-        pass
-
-    return freqBand_power,peakPSD
-
-def customICA(input,time_s,tuneVal,dispIMG,figsize,pltclr,titles):
-    # algorithm uses ICA to split the eeg into components to allow for easy extraction of ocular artefacts
-    # Using the idea of the ASR algorithm, the tuneVal is the number of STD above the mean
-    # eeg elements that fall into the class above the mean are artefactsa and replaced with 
-    # the mean value of non-artefact elements
-    val = tuneVal
-    ica = FastICA(len(input.T),max_iter=200,tol=0.0001,random_state=0)
-    components = ica.fit_transform(input)  
-
-    def fixICAcomps(datae,val):
-        mean = np.mean(datae, axis=0)
-        sd = np.std(datae, axis=0)
-        final_list = [x for x in datae if (x > mean - val * sd)]
-        final_list = [x for x in final_list if (x < mean + val * sd)]
-        final_list = np.asarray(final_list)
-
-        def returnNotMatches(a, b):
-            a = set(a)
-            b = set(b)
-            return [list(b - a), list(a - b)]
-
-        rejected = np.asarray(returnNotMatches(datae,final_list)[1])
-        rejected = rejected.reshape(len(rejected),1)
-        idx = np.where(datae==rejected)[1]
-        idx = idx.tolist()
-        #idx = idx.reshape(len(idx),1)
-        #datae = datae.reshape(len(datae),1)
-        replace_vals = [np.mean(final_list)] * len(idx)
-        fixedComps = [replace_vals[idx.index(i)] if i in idx else datae[i] for i in range(len(datae))]
-        return fixedComps
-
-    out_final = []
-    for i in range(len(components.T)):
-        out_init = fixICAcomps(components[:,i],val)
-        out_final.append(out_init)
-    out_final = np.asarray(out_final).T
-    x_restored = ica.inverse_transform(out_final)
-    s_ = x_restored
-    x,y= time_s,s_
-    if dispIMG == True:
-        # Plot of band passed output
-        x_lim = [x[0],x[-1]]
-        if len(y.T) % 2 != 0:
-            nrows,ncols=1,int(len(y.T))
-        elif len(y.T) % 2 == 0:
-            nrows,ncols=2,int(len(y.T)/2)
-        fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-        for i, axs in enumerate(axs.flatten()):
-            axs.plot(x, y[:,i], color=pltclr[i])
-            axs.set_title(titles[i])
-            axs.set_ylim([np.min(y[:,i])-300,np.max(y[:,i])+300])
-            axs.set_xlim([x_lim[0],x_lim[1]])
-            axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-            axs.label_outer()
-    
-    elif dispIMG == False:
-        pass
-    return x_restored
-
-def museEEGPipeline(fileName,fs,access_token,localPath,dropboxPath,fft_low,fft_high,lowcut,highcut,order,collectionTime):
-    # augmentEEG means size of original eeg is increased
-    # import the file
-    fileImport = importFile('muse')
-    data = fileImport.muse(access_token,localPath,fs,fileName,dropboxPath,None,None,True,'custom',collectionTime)
-    rawEEG = data[0]
-    time_s = data[1]
-        
-    # Apply ICA to fix ocular artifacts
-    # n_components = 6 representing the four electrodes of muse eeg
-    # and the two pooled electrodes
-    ica_data = customICA(rawEEG,time_s,2,None,None,None,None)
-
-    notc=filters()
-    notcHData = notc.notch(ica_data,time_s,line,fs,Q,None,None,None,None)
-    # Apply Butter Band Pass Filter
-    bp = filters()
-    bpData = bp.butterBandPass(notchData,time_s,lowcut,highcut,fs,order,None,None,None,None)
-
-    # Apply FFT to compute Average Band Power Per Channel
-    # e.g., alpha band: fft_low,fft_high = 8,13
-    bandPower_TP9 = absBandPower(bpData[:,0],fs,fft_low,fft_high,4 * fs,None,None,None,None,None)
-    bandPower_AF7 = absBandPower(bpData[:,1],fs,fft_low,fft_high,4 * fs,None,None,None,None,None)
-    bandPower_AF8 = absBandPower(bpData[:,2],fs,fft_low,fft_high,4 * fs,None,None,None,None,None)
-    bandPower_TP10 = absBandPower(bpData[:,3],fs,fft_low,fft_high,4 * fs,None,None,None,None,None)
-    bandPower_fElectrode = absBandPower(bpData[:,4],fs,fft_low,fft_high,4 * fs,None,None,None,None,None)
-    bandPower_pElectrode = absBandPower(bpData[:,5],fs,fft_low,fft_high,4 * fs,None,None,None,None,None)
-    return bandPower_AF7,bandPower_AF8,bandPower_fElectrode,bandPower_TP9,bandPower_TP10,bandPower_pElectrode
-
 def ncPipeline(version,filename,localPath,line,fs,Q,stimTrig,lowcut,highcut,order,clip,dispIMG,y_lim,figsize,pltclr,titles):
     # combines preprocessing and post processing
     # processes erps for each channel
@@ -2935,26 +2773,17 @@ def ncPipeline(version,filename,localPath,line,fs,Q,stimTrig,lowcut,highcut,orde
     elif bool(clip)==False:
         pass
 
-def spectogramPlot(data,fs,nfft,nOverlap,dispIMG,figsize,titles):
-    if dispIMG == True:
-        # Plot of band passed output
-        y = data
-        if len(y.T) % 2 != 0:
-            nrows,ncols=1,int(len(y.T))
-        elif len(y.T) % 2 == 0:
-            nrows,ncols=2,int(len(y.T)/2)
-        fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-        fig.suptitle('Spectogram')
-        label= ["Power/Frequency"]
-        for i, axs in enumerate(axs.flatten()):
-            d, f, t, im = axs.specgram(data[:,i],NFFT=nfft,Fs=fs,noverlap=nOverlap)
-            axs.set_title(titles[i])
-            axs.set_ylim(0,50)
-            axs.set(xlabel='Time (s)', ylabel='Frequency (Hz)')
-            axs.label_outer()
-        fig.colorbar(im, ax=axs, shrink=0.9, aspect=10)
-        
-    elif dispIMG == False:
-        pass
-
-# test
+def plots(x,y,titles,figsize,pltclr,xlabel,ylabel):
+    x_lim = [x[0],x[-1]]
+    if len(y.T) % 2 != 0:
+        nrows,ncols=1,int(len(y.T))
+    elif len(y.T) % 2 == 0:
+        nrows,ncols=2,int(len(y.T)/2)
+    fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
+    for i, axs in enumerate(axs.flatten()):
+        axs.plot(x, y[:,i], color=pltclr[i])
+        axs.set_title(titles[i])
+        axs.set_ylim([np.max(y[:,i])+1000,np.min(y[:,i])-1000])
+        axs.set_xlim([x_lim[0],x_lim[1]])
+        axs.set(xlabel,ylabel)
+        axs.label_outer()
