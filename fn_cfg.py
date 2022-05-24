@@ -118,7 +118,7 @@ class importFile:
         return rawEEG,time_s,timestamp
 
     class neurocatch:
-        def init(self,version,filename,localPath,dispIMG,y_lim,figsize,pltclr,titles):
+        def init(self,version,filename,localPath):
             if version == 1.0:
                 data = filename
                 localPath = localPath.replace(os.sep, '/')   
@@ -235,8 +235,6 @@ class importFile:
                 path = localPath+filename
                 os.chdir(path)
                 for file in os.listdir():
-                    if file.endswith(".txt"):
-                        file_path = f"{path}/{file}"
                     if file.endswith(".json"):
                         file_path = f"{path}/{file}"
 
@@ -260,9 +258,6 @@ class importFile:
             print(filenames)
             data = [np.fromfile(f, dtype=np.float32) for f in filenames]
             data1 = data[0]
-            #if version == 1.0:
-            #    dataCols = gtec['dataCols']
-            #elif version == 1.1:
             dataCols = len(metaData_chans)
             dataRows = int(len(data1)/dataCols)           
             data1 = data1.reshape(dataRows, dataCols)
@@ -350,7 +345,7 @@ class importFile:
 
             # %% the new raw data just containing the required eegchans,eogchans and the trig channel
                 # correctly name channels in raw Data
-            csm = dict(fz=[0], cz=[1], pz=[2], eog1=[3], eog2=[4], ntrig=[5])
+            csm = dict(fz=[0], cz=[1], pz=[2], eog1=[3], eog2=[4], eog3=[5], eog4=[6],eog5=[7], ntrig=[8])
             csm_fz = csm['fz']
             csm_fz = csm_fz[0]
             csm_cz = csm['cz']
@@ -361,25 +356,63 @@ class importFile:
             csm_eog1 = csm_eog1[0]
             csm_eog2 = csm['eog2']
             csm_eog2 = csm_eog2[0]
+            csm_eog3 = csm['eog3']
+            csm_eog3 = csm_eog3[0]
+            csm_eog4 = csm['eog4']
+            csm_eog4 = csm_eog4[0]
+            csm_eog5 = csm['eog5']
+            csm_eog5 = csm_eog5[0]
             csm_ntrig = csm['ntrig']
             csm_ntrig = csm_ntrig[0]
 
             if len(rawData.T)==4:
                 csm_ntrig = 3
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_ntrig]]  
-                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
+                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_ntrig]]
+                rawEEGEOG = np.concatenate((rawEEG),axis=1)
+                print('data contains Fz, Cz, Pz & no EOG channels')
             
             elif len(rawData.T)==5:
                 csm_ntrig = 4
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_ntrig]]  
-                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
+                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1]]
+                rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
+                print('data contains Fz, Cz, Pz & one EOG channels')
+
             elif len(rawData.T)==6:
+                csm_ntrig = 5
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_eog2,csm_ntrig]]  
-                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
+                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2]]
-            rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
+                rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
+                print('data contains Fz, Cz, Pz & two EOG channel')
+
+            elif len(rawData.T)==7:
+                csm_ntrig = 6
+                rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_eog2,csm_eog3,csm_ntrig]]  
+                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
+                rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3]]
+                rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
+                print('data contains Fz, Cz, Pz & three EOG channel')
+
+            elif len(rawData.T)==8:
+                csm_ntrig = 7
+                rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_eog2,csm_eog3,csm_eog4,csm_ntrig]]  
+                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
+                rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3,csm_eog4]]
+                rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
+                print('data contains Fz, Cz, Pz & four EOG channel')
+
+            elif len(rawData.T)==9:
+                csm_ntrig = 8
+                rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_eog2,csm_eog3,csm_eog4,csm_eog5,csm_ntrig]]  
+                rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
+                rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3,csm_eog4,csm_eog5]]
+                rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
+                print('data contains Fz, Cz, Pz & five EOG channel')
+
             # time period of scan
             fs = gtec['fs']
             sfreq = fs
@@ -387,7 +420,7 @@ class importFile:
             stop = dataRows/sfreq 
             Ts = np.arange(0,stop,dt) 
             Ts = Ts.reshape((len(Ts)),1)
-            return rawEEG, rawEOG,rawEEGEOG,Ts,trig
+            return rawEEG,rawEOG,rawEEGEOG,Ts,trig
 
 class filters:
     # filters for EEG data
@@ -2773,17 +2806,17 @@ def ncPipeline(version,filename,localPath,line,fs,Q,stimTrig,lowcut,highcut,orde
     elif bool(clip)==False:
         pass
 
-def plots(x,y,titles,figsize,pltclr,xlabel,ylabel):
+def plots(x,y,titles,figsize,pltclr):
     x_lim = [x[0],x[-1]]
     if len(y.T) % 2 != 0:
-        nrows,ncols=1,int(len(y.T))
+        nrows,ncols=int(len(y.T)),1
     elif len(y.T) % 2 == 0:
         nrows,ncols=2,int(len(y.T)/2)
     fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
     for i, axs in enumerate(axs.flatten()):
         axs.plot(x, y[:,i], color=pltclr[i])
         axs.set_title(titles[i])
-        axs.set_ylim([np.max(y[:,i])+1000,np.min(y[:,i])-1000])
+        #axs.set_ylim([np.max(y[:,i])+1000,np.min(y[:,i])-1000])
         axs.set_xlim([x_lim[0],x_lim[1]])
-        axs.set(xlabel,ylabel)
+        axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
         axs.label_outer()
