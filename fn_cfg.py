@@ -260,10 +260,10 @@ class importFile:
             print(filenames)
             data = [np.fromfile(f, dtype=np.float32) for f in filenames]
             data1 = data[0]
-            if version == 1.0:
-                dataCols = gtec['dataCols']
-            elif version == 1.2:
-                dataCols = len(metaData_chans)
+            #if version == 1.0:
+            #    dataCols = gtec['dataCols']
+            #elif version == 1.1:
+            dataCols = len(metaData_chans)
             dataRows = int(len(data1)/dataCols)           
             data1 = data1.reshape(dataRows, dataCols)
 
