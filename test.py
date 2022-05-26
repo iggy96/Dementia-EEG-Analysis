@@ -55,6 +55,7 @@ pathBin = [path+'/'+filename+'.bin']
 filenames = glob.glob(pathBin[0])
 print(filenames)
 data = [np.fromfile(f, dtype=np.float32) for f in filenames]
+data_len = len(data)
 dataView = data[0]
 data1 = data[0]
 dataCols = len(metaData_chans)
