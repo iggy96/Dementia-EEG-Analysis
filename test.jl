@@ -1,8 +1,10 @@
-print("hello world")
+data = Array{Float32}(undef,n)
+read!("/Users/joshuaighalo/Downloads/raw/0_1_12072018_1206/0_1_12072018_1206.bin", data)
 
-y_1 = [2+3, 4+5, 6+7]
-print(y)
 
-using Plots
-x = 1:10; y = rand(10); # These are the plotting data
-plot(x,y, label="test plot")
+
+test_2 = (read("/Users/joshuaighalo/Downloads/raw/0_1_12072018_1206/0_1_12072018_1206.bin"))
+len_test_2 = length(test_2)
+dataCols = 11
+dataRows = Int(length(test_2)/dataCols)
+coll_data = reshape(test_2, (dataRows, dataCols))
