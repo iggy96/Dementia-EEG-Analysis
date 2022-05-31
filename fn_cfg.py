@@ -106,35 +106,42 @@ class importFile:
                             val3 = int(float(val6))
                     return val3
                     
-                p3 = lines[9] # extract line
+                # extract from metadata file, channels that collected eeg data
+                device_chans = ['FZ','CZ','P3','PZ','P4','PO7','PO8','OZ','unknown channel','unknown channel','unknown channel','sampleNumber','battery','trigger']
+                def lcontains(needle_s, haystack_l):
+                    try: return [i for i in haystack_l if needle_s in i][0]
+                    except IndexError: return None
+                metadata_chans = [lcontains(device_chans[i],lines) for i in range(len(device_chans))]
+
+                p3 = metadata_chans[2]
                 if len(p3)<=15:
                     p3 = two_digits(p3)
                 else:
                     p3 = three_digits(p3)
-
-                p4 = lines[11]
+                p4 = metadata_chans[4]
                 if len(p4)<=15:
                     p4 = two_digits(p4)
                 else:
                     p4 = three_digits(p4)
 
-                p07 = lines[12]
+                p07 = metadata_chans[5]
                 if len(p07)<=15:
                     p07 = two_digits(p07)
                 else:
                     p07 = three_digits(p07)
 
-                p08 = lines[13]
+                p08 = metadata_chans[6]
                 if len(p08)<=15:
                     p08 = two_digits(p08)
                 else:
                     p08 = three_digits(p08)
 
-                oz = lines[14]
+                oz = metadata_chans[7]
                 if len(oz)<=15:
                     oz = two_digits(oz)
                 else:
                     oz = three_digits(oz)
+
             elif version == 1.1:
                 localPath = localPath.replace(os.sep, '/')   
                 localPath = localPath + '/'  
@@ -144,19 +151,19 @@ class importFile:
                     if file.endswith(".json"):
                         file_path = f"{path}/{file}"
 
-                metaData = open(file_path)
-                metaData = json.load(metaData)
-                for i in metaData:
+                metadata = open(file_path)
+                metadata = json.load(metadata)
+                for i in metadata:
                     print(i)
-                print(metaData['version'])
-                metaData_chans = metaData['channels']
-                metaData_imp = metaData['impedances']
+                print(metadata['version'])
+                metadata_chans = metadata['channels']
+                metadata_imp = metadata['impedances']
                 # p3,p4,p07,p08,oz
-                p3 = (metaData_imp[0])['P3']
-                p4 = (metaData_imp[0])['P4']
-                p07 = (metaData_imp[0])['PO7']
-                p08 = (metaData_imp[0])['PO8']
-                oz = (metaData_imp[0])['OZ']
+                p3 = (metadata_imp[0])['P3']
+                p4 = (metadata_imp[0])['P4']
+                p07 = (metadata_imp[0])['PO7']
+                p08 = (metadata_imp[0])['PO8']
+                oz = (metadata_imp[0])['OZ']
 
             #  import raw file 1
             pathBin = [path+'/'+filename+'.bin']
@@ -164,7 +171,7 @@ class importFile:
             print(filenames)
             data = [np.fromfile(f, dtype=np.float32) for f in filenames]
             data1 = data[0]
-            dataCols = len(metaData_chans)
+            dataCols = len(metadata_chans)
             dataRows = int(len(data1)/dataCols)           
             data1 = data1.reshape(dataRows, dataCols)
 
@@ -285,7 +292,7 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & one EOG channels')
+                print('data contains Fz, Cz, Pz & one EOG channel')
 
             elif len(rawData.T)==6:
                 csm_ntrig = 5
@@ -293,7 +300,7 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & two EOG channel')
+                print('data contains Fz, Cz, Pz & two EOG channels')
 
             elif len(rawData.T)==7:
                 csm_ntrig = 6
@@ -301,7 +308,7 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & three EOG channel')
+                print('data contains Fz, Cz, Pz & three EOG channels')
 
             elif len(rawData.T)==8:
                 csm_ntrig = 7
@@ -309,7 +316,7 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3,csm_eog4]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & four EOG channel')
+                print('data contains Fz, Cz, Pz & four EOG channels')
 
             elif len(rawData.T)==9:
                 csm_ntrig = 8
@@ -317,7 +324,7 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3,csm_eog4,csm_eog5]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & five EOG channel')
+                print('data contains Fz, Cz, Pz & five EOG channels')
 
             # time period of scan
             fs = gtec['fs']
