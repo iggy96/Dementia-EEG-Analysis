@@ -10,113 +10,19 @@ from df_lib import*
 from params import*
 
 
+# Preprocessing functions
+# Event Related Potentials (ERP) extracting functions 
 class importFile:
-
-    def muse(self,access_token,localPath,fs,subjectFile,dbPath,mean_JawBlink,fs_setting,collectionTime,dispIMG,figsize,pltclr,titles):
-        #%% download csv file from dropbox
-        localPath = localPath.replace(os.sep, '/')   
-        localPath = localPath + '/'                               # change back slash to forward slash
-        dbx = dropbox.Dropbox(access_token)                       # access dropbox with access token
-        f = open(localPath+subjectFile,"wb")                      # create subject file in local path
-        metadata,res = dbx.files_download(dbPath+subjectFile)     # download dropbox file into local path
-        f.write(res.content)                                      # write downloaded dropbox file into created subject file in local path
-        zf = zipfile.ZipFile(localPath+subjectFile, 'r')          # open zip file in the local path
-        fileName = zf.namelist()                                  # extract the name of the content within the zip file
-        fileNames = str(fileName)[2:-2]                            # remove the square brackets ['fileName']
-        df = pd.read_csv(zf.open(fileNames))                       # use the modified file name to open the csv file inside the zip file
-        raw = df[['RAW_TP9', 'RAW_AF7', 'RAW_AF8', 'RAW_TP10']].to_numpy()
-
-        #%% Pooled channels from raw data
-        fElectrodes = np.hstack((raw[:,1].reshape(len(raw[:,1]),1),raw[:,2].reshape(len(raw[:,2]),1)))
-        f_pooled = np.mean(fElectrodes,axis=1)
-        f_pooled = f_pooled.reshape(len(f_pooled),1)
-        pElectrodes = np.hstack((raw[:,0].reshape(len(raw[:,0]),1),raw[:,3].reshape(len(raw[:,3]),1)))
-        p_pooled = np.mean(pElectrodes,axis=1)
-        p_pooled = p_pooled.reshape(len(p_pooled),1)
-        raw = np.hstack((raw,f_pooled,p_pooled))
-        rawEEG = raw
-        t_len = len(rawEEG)
-        period = (1.0/fs)
-        time_s = np.arange(0, t_len * period, period)
-        #%% process eye blinks and jaw clenches identified by muse eeg
-        if mean_JawBlink == None:
-            # deletes empty rows (or rows with nan) in the raw eeg csv identifying blinks and jaw clenches
-            blinkMark_TP9 = np.isnan(rawEEG[:,0])
-            tp9 = np.delete(rawEEG[:,0],blinkMark_TP9, axis=0)
-            blinkMark_AF7 = np.isnan(rawEEG[:,1])
-            af7 = np.delete(rawEEG[:,1],blinkMark_AF7, axis=0)
-            blinkMark_AF8 = np.isnan(rawEEG[:,2])
-            af8 = np.delete(rawEEG[:,2],blinkMark_AF8, axis=0)
-            blinkMark_TP10 = np.isnan(rawEEG[:,3])
-            tp10 = np.delete(rawEEG[:,3],blinkMark_TP10, axis=0)
-            blinkMark_fPooled = np.isnan(rawEEG[:,4])
-            fPooled = np.delete(rawEEG[:,4],blinkMark_fPooled, axis=0)
-            blinkMark_pPooled = np.isnan(rawEEG[:,5])
-            pPooled = np.delete(rawEEG[:,5],blinkMark_pPooled, axis=0)
-            rawEEG = np.hstack((tp9.reshape(len(tp9),1),af7.reshape(len(af7),1),af8.reshape(len(af8),1),tp10.reshape(len(tp10),1),fPooled.reshape(len(fPooled),1),pPooled.reshape(len(pPooled),1)))
-        elif mean_JawBlink == True:
-            # inserts mean of channels for Nan values in raw eeg csv identifying blinks and jaw clenches
-            blinkMark_TP9 = (time_s[np.argwhere(np.isnan(rawEEG[:,0]))]).tolist()
-            blinkMark_AF7 = (time_s[np.argwhere(np.isnan(rawEEG[:,1]))]).tolist()
-            blinkMark_AF8 = (time_s[np.argwhere(np.isnan(rawEEG[:,2]))]).tolist()
-            blinkMark_TP10 = (time_s[np.argwhere(np.isnan(rawEEG[:,3]))]).tolist()
-            blinkMark_fPooled = (time_s[np.argwhere(np.isnan(rawEEG[:,4]))]).tolist()
-            blinkMark_pPooled = (time_s[np.argwhere(np.isnan(rawEEG[:,5]))]).tolist()
-                # replace positions of jaw clenches and blinks with means
-            col_mean = np.nanmean(rawEEG, axis=0)
-                # Find indices that you need to replace
-            inds = np.where(np.isnan(rawEEG))
-                # Place column means in the indices. Align the arrays using take
-            rawEEG[inds] = np.take(col_mean, inds[1])
-            t_len = len(rawEEG)
-            period = (1.0/fs)
-            time_s = np.arange(0, t_len * period, period)
-
-        #%% verfify sampling rate: 
-        #   fix is custom sampling rate was used or ignore if constant (256Hz) was used
-        if fs_setting == 'resample_poly':
-            # upsampling is common for muse eeg if the custom setting is utilized
-            # fs = desired sampling frequency
-            rawEEG = signal.resample_poly(rawEEG,fs,1)
-            rawEEG = rawEEG[0:((collectionTime*fs)-1)]
-            t_len = len(rawEEG)
-            period = (1.0/fs)
-            time_s = np.arange(0, t_len * period, period)
-        if fs_setting == 'resample':
-            # upsampling is common for muse eeg if the custom setting is utilized
-            # fs = desired sampling frequency
-            rawEEG = signal.resample(rawEEG,fs*collectionTime)
-            t_len = len(rawEEG)
-            period = (1.0/fs)
-            time_s = np.arange(0, t_len * period, period)
-        elif fs_setting == 'constant':
-            # eeg signals generated at this rate is perfect!
-            pass
-
-        #%% display extracted raw eeg
-        x,y= time_s,rawEEG
-        if dispIMG == True:
-            # Plot of band passed output
-            x_lim = [x[0],x[-1]]
-            if len(y.T) % 2 != 0:
-                nrows,ncols=1,int(len(y.T))
-            elif len(y.T) % 2 == 0:
-                nrows,ncols=2,int(len(y.T)/2)
-            fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-            for i, axs in enumerate(axs.flatten()):
-                axs.plot(x, y[:,i], color=pltclr[i])
-                axs.set_title(titles[i])
-                axs.set_ylim([np.max(y[:,i])+1000,np.min(y[:,i])-1000])
-                axs.set_xlim([x_lim[0],x_lim[1]])
-                axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                axs.label_outer()
-        
-        elif dispIMG == False:
-            pass
-        
-        timestamp = df[['TimeStamp']].to_numpy()
-        return rawEEG,time_s,timestamp
-
+    """
+    Functionality is geared towards importing raw eeg files from the gtec system.
+    The class contains a subclass which is the nuerocatch class
+        -   The neurocatch class facilitates the selection of the version (either V1.0 or v1.1) of the neurocatch system
+            utilized during the recording of the eeg data.
+        -   This function also contains an EOG channel selector block which facilitates the correct selection of the 
+            EOG channel.
+        -   Function returns the raw EEG,raw EOG,an array holding both raw EEG and raw EOG,time (Ts) and the trigger
+            channel (trig)
+    """
     class neurocatch:
         def init(self,version,filename,localPath):
             if version == 1.0:
@@ -415,110 +321,65 @@ class importFile:
 
             # time period of scan
             fs = gtec['fs']
-            sfreq = fs
-            dt = 1/sfreq
-            stop = dataRows/sfreq 
-            Ts = np.arange(0,stop,dt) 
-            Ts = Ts.reshape((len(Ts)),1)
+            dt = 1/fs
+            stop = dataRows/fs
+            Ts = (np.arange(0,stop,dt)).reshape(len(np.arange(0,stop,dt)),1)
             return rawEEG,rawEOG,rawEEGEOG,Ts,trig
 
 class filters:
-    # filters for EEG data
-    # filtering order: adaptive filter -> notch filter -> bandpass filter (or lowpass filter, highpass filter)
-    def notch(self,data,timePeriod,line,fs,Q,dispIMG,figsize,pltclr,titles):
-        #   Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of unfiltered EEG data
-        #               cut     - frequency to be notched (defaults to config)
-        #               fs      - sampling rate of hardware (defaults to config)
-        #               Q       - Quality Factor (defaults to 30) that characterizes notch filter -3 dB bandwidth bw relative to its center frequency, Q = w0/bw.   
-        #   Output  :   y     - 2D numpy array (d0 = samples, d1 = channels) of notch-filtered EEG data
-        #   NOTES   :   
-        #   Todo    : report testing filter characteristics
+    """
+     filters for EEG data
+     filtering order: adaptive filter -> notch filter -> bandpass filter (or lowpass filter, highpass filter)
+    """
+    def notch(self,data,line,fs,Q=30):
+        """
+           Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of unfiltered EEG data
+                       cut     - frequency to be notched (defaults to config)
+                       fs      - sampling rate of hardware (defaults to config)
+                       Q       - Quality Factor (defaults to 30) that characterizes notch filter -3 dB bandwidth bw relative to its center frequency, Q = w0/bw.   
+           Output  :   y     - 2D numpy array (d0 = samples, d1 = channels) of notch-filtered EEG data
+           NOTES   :   
+           Todo    : report testing filter characteristics
+        """
         cut = line
         w0 = cut/(fs/2)
         b, a = signal.iirnotch(w0, Q)
         y = signal.filtfilt(b, a, data, axis=0)
-
-        # Plot filtered data
-        x = timePeriod
-        if dispIMG == True:
-            # Plot of band passed output
-            x_lim = [x[0],x[-1]]
-            if len(y.T) % 2 != 0:
-                nrows,ncols=1,int(len(y.T))
-            elif len(y.T) % 2 == 0:
-                nrows,ncols=2,int(len(y.T)/2)
-            fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-            fig.suptitle('Notch Filter Output')
-            for i, axs in enumerate(axs.flatten()):
-                axs.plot(x, y[:,i], color=pltclr[i])
-                axs.set_title(titles[i])
-                axs.set_ylim([np.min(y[:,i])-300,np.max(y[:,i])+300])
-                axs.set_xlim([x_lim[0],x_lim[1]])
-                axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                axs.label_outer()
-        
-        elif dispIMG == False:
-            pass
-
         return y
 
-    def butterBandPass(self,data,timePeriod,lowcut,highcut,fs,order,dispIMG,figsize,pltclr,titles):
-        #   Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of unfiltered EEG data
-        #               low     - lower limit in Hz for the bandpass filter (defaults to config)
-        #               high    - upper limit in Hz for the bandpass filter (defaults to config)
-        #               fs      - sampling rate of hardware (defaults to config)
-        #               order   - the order of the filter (defaults to 4)  
-        #   Output  :   y     - 2D numpy array (d0 = samples, d1 = channels) of notch-filtered EEG data
-        #   NOTES   :   
-        #   Todo    : report testing filter characteristics
-        # data: eeg data (samples, channels)
-        # some channels might be eog channels
+    def butterBandPass(self,data,lowcut,highcut,fs,order=4):
+        """
+           Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of unfiltered EEG data
+                       low     - lower limit in Hz for the bandpass filter (defaults to config)
+                       high    - upper limit in Hz for the bandpass filter (defaults to config)
+                       fs      - sampling rate of hardware (defaults to config)
+                       order   - the order of the filter (defaults to 4)  
+           Output  :   y     - 2D numpy array (d0 = samples, d1 = channels) of notch-filtered EEG data
+           NOTES   :   
+           Todo    : report testing filter characteristics
+         data: eeg data (samples, channels)
+         some channels might be eog channels
+        """
         low_n = lowcut
         high_n = highcut
         sos = butter(order, [low_n, high_n], btype="bandpass", analog=False, output="sos",fs=fs)
         y = sosfiltfilt(sos, data, axis=0)
-
-        # Plot filtered data
-        x = timePeriod
-        if dispIMG == True:
-            # Plot of band passed output
-            x_lim = [x[0],x[-1]]
-            if len(y.T) % 2 != 0:
-                nrows,ncols=1,int(len(y.T))
-            elif len(y.T) % 2 == 0:
-                nrows,ncols=2,int(len(y.T)/2)
-            fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-            fig.suptitle('Butter Band Pass Filter Output')
-            for i, axs in enumerate(axs.flatten()):
-                axs.plot(x, y[:,i], color=pltclr[i])
-                axs.set_title(titles[i])
-                axs.set_ylim([np.min(y[:,i])-300,np.max(y[:,i])+300])
-                axs.set_xlim([x_lim[0],x_lim[1]])
-                axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                axs.label_outer()
-        
-        elif dispIMG == False:
-            pass
-
         return y
 
-    def adaptive(self,eegData,eogData,timePeriod,dispIMG,figsize,pltclr,titles):
-        #   Inputs:
-        #   eegData - A matrix containing the EEG data to be filtered here each channel is a column in the matrix, and time
-        #   starts at the top row of the matrix. i.e. size(data) = [numSamples,numChannels]
-        #   eogData - A matrix containing the EOG data to be used in the adaptive filter
-        #   startSample - the number of samples to skip for the calculation (i.e. to avoid the transient)
-        #   p - plot AF response (default false)
-        #   nKernel = Dimension of the kernel for the adaptive filter
-        #   Outputs:
-        #   cleanData - A matrix of the same size as "eegdata", now containing EOG-corrected EEG data.
-        #   Adapted from He, Ping, G. Wilson, and C. Russell. "Removal of ocular artifacts from electro-encephalogram by adaptive filtering." Medical and biological engineering and computing 42.3 (2004): 407-412.
-
+    def adaptive(self,eegData,eogData,nKernel=5, forgetF=0.995,  startSample=0, p = False):
+        """
+           Inputs:
+           eegData - A matrix containing the EEG data to be filtered here each channel is a column in the matrix, and time
+           starts at the top row of the matrix. i.e. size(data) = [numSamples,numChannels]
+           eogData - A matrix containing the EOG data to be used in the adaptive filter
+           startSample - the number of samples to skip for the calculation (i.e. to avoid the transient)
+           p - plot AF response (default false)
+           nKernel = Dimension of the kernel for the adaptive filter
+           Outputs:
+           cleanData - A matrix of the same size as "eegdata", now containing EOG-corrected EEG data.
+           Adapted from He, Ping, G. Wilson, and C. Russell. "Removal of ocular artifacts from electro-encephalogram by adaptive filtering." Medical and biological engineering and computing 42.3 (2004): 407-412.
+        """
         #   reshape eog array if necessary
-        forgetF=0.995
-        nKernel=5
-        startSample=0
-        p = False
         if len(eogData.shape) == 1:
             eogData = np.reshape(eogData, (eogData.shape[0], 1))
         # initialise Recursive Least Squares (RLS) filter state
@@ -542,83 +403,1053 @@ class filters:
             e_n = s_n - np.dot(r_n.T, H_n).T
             X[eegIndex, n] = np.squeeze(e_n)
         cleanData = X[eegIndex, :].T
-
-        # Plot filtered data
-        x,y= timePeriod,cleanData
-        if dispIMG == True:
-            # Plot of band passed output
-            x_lim = [x[0],x[-1]]
-            if len(y.T) % 2 != 0:
-                nrows,ncols=1,int(len(y.T))
-            elif len(y.T) % 2 == 0:
-                nrows,ncols=2,int(len(y.T)/2)
-            fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-            for i, axs in enumerate(axs.flatten()):
-                axs.plot(x, y[:,i], color=pltclr[i])
-                axs.set_title(titles[i])
-                axs.set_ylim([np.min(y[:,i])-300,np.max(y[:,i])+300])
-                axs.set_xlim([x_lim[0],x_lim[1]])
-                axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                axs.label_outer()
-        
-        elif dispIMG == False:
-            pass
-
         return cleanData
 
-    def butter_lowpass(self,data,cutoff,fs,order,timePeriod,dispIMG,x_lim,y_lim,figsize,pltclr,titles):
+    def butter_lowpass(self,data,cutoff,fs,order):
         nyq = 0.5 * fs
         normal_cutoff = cutoff / nyq
         b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
         y = signal.lfilter(b, a, data)
-
-        # Plot filtered data
-        x=timePeriod
-        y = data
-        # Plot filtered data
-        x = timePeriod
-        if dispIMG == True:
-            # Plot of band passed output
-            nrows,ncols=int(len(y.T)),1
-            fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-            fig.suptitle('Low Pass Filter Output')
-            for i, axs in enumerate(axs.flatten()):
-                axs.plot(x, y[:,i], color=pltclr[i])
-                axs.set_title(titles[i])
-                axs.set_ylim([np.max(y[:,i])+100,np.min(y[:,i])-100])
-                axs.set_xlim([x_lim[0],x_lim[1]])
-                axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                axs.label_outer()
-        elif dispIMG == False:
-            pass
-
         return y
 
-    def butter_highpass(self,data,cutoff,fs,order,timePeriod,dispIMG,x_lim,y_lim,figsize,pltclr,titles):
+    def butter_highpass(self,data,cutoff,fs,order):
         nyq = 0.5 * fs
         normal_cutoff = cutoff / nyq
         b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
         y = signal.filtfilt(b, a, data)
-        # Plot filtered data
-        x=timePeriod
-        y = data
-        if dispIMG == True:
-            # Plot of band passed output
-            nrows,ncols=int(len(y.T)),1
-            fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
-            fig.suptitle('High Pass Filter Output')
-            for i, axs in enumerate(axs.flatten()):
-                axs.plot(x, y[:,i], color=pltclr[i])
-                axs.set_title(titles[i])
-                axs.set_ylim([np.max(y[:,i])+100,np.min(y[:,i])-100])
-                axs.set_xlim([x_lim[0],x_lim[1]])
-                axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
-                axs.label_outer()
-        elif dispIMG == False:
-            pass
-
         return y
 
+def rising_edge(data):
+    # used in trigger channel development before epoching
+    trig = data
+    trg = (trig >= 1) & (trig < 9)
+    trig[trg > 1] = 0     # cut off any onset offset triggers outside the normal range.
+    diff = np.diff(trig)
+    t = diff > 0  # rising edges assume true
+    k = np.array([ False])
+    k = k.reshape(1,len(k))
+    pos = np.concatenate((k, t),axis=1)
+    trig[~pos] = 0
+    newtrig = trig 
+    trigCol = newtrig
+    trigCol = trigCol.T
+    trigCol = trigCol.reshape(len(trigCol))
+    return trigCol
+
+def peaktopeak(data):
+    # used for artifact rejection
+    a = np.amax(data, axis = 1)
+    b = np.amin(data, axis = 1)
+    p2p = a-b
+    return p2p
+
+class erpExtraction:
+    """
+      Inputs: trigger data produced from rising_edge()
+            : standard and deviant tones elicit the N100 and P300 erps
+            : congruent and incongruent words elicit the N400 erps
+      Outputs: ERP data (samples, channels) for N100,P300 and N400
+      Notes:   - The trigger channel is assumed to be the last channel in the data matrix
+    """
+    def N100P300(self,trigger_channel,eegData,period,stimTrig,clip):
+        """
+          Inputs: trigger channels, bandpass filtered data for all channels, time period,
+                  stimTrig, clip value
+        """
+        trigger_channel,channel_data,period,stimTrig,clip = trigger_channel,eegData,period,stimTrig,clip
+        def algorithm(trigger_channel,channel_data,period,stimTrig,clip):
+            trigger_data = rising_edge(trigger_channel)
+            trigCol = trigger_data
+            avg = channel_data 
+            Ts = period
+            # STANDARD TONE [1]: extract the time points where stimuli 1 exists
+            std = stimTrig['std']
+            std = std[0]
+            
+            no_ones = np.count_nonzero(trigCol==1)
+            print("number of std tone event codes:",no_ones)
+            
+            result = np.where(trigCol == std)
+            idx_10 = result[0]
+            idx_11 = idx_10.reshape(1,len(idx_10))
+            
+            # sort target values
+            desiredCols = trigCol[idx_10]
+            desiredCols = desiredCols.reshape(len(desiredCols),1)
+            
+            # sort values before target
+            idx_st = (idx_11 - 50)
+            i = len(idx_st.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = trigCol[int(idx_st[:,x]):int(idx_11[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            startVals = allArrays
+            startCols = startVals.reshape(no_ones,50)
+            
+            # sort values immediately after target
+            idx_en11 = idx_11 + 1
+            postTargetCols = trigCol[idx_en11]
+            postTargetCols = postTargetCols.T
+            
+            # sort end values
+                # ----------------------------------------------------------------------------
+                # determination of the number steps to reach the last point of each epoch
+                # the event codes are not evenly timed hence the need for steps determination
+            a = trigCol[idx_10]
+            a = a.reshape(len(a),1)
+            
+            b = Ts[idx_10]
+            
+            c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
+            c = (np.array([0,c_i]))
+            c = c.reshape(1,len(c))
+            
+            std_distr = np.concatenate((a, b),axis=1)
+            std_distr = np.vstack((std_distr,c))
+            
+            std_diff = np.diff(std_distr[:,1],axis=0)
+            std_step = ((std_diff/0.002)-1)
+            std_step = np.where(std_step > 447, 447, std_step)
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(std_step == std_step[0])
+            if result:
+                # use for equal epoch steps
+                # sort end values
+                idx_en12 = idx_en11 + std_step.T
+                i = len(idx_en12.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = trigCol[int(idx_en11[:,x]):int(idx_en12[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                endCols = endVals.reshape(no_ones,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                trig_std = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            else:
+                # use when we have unequal epoch steps
+                    # --------------------------------------------
+                    # apply the step to get the index of the last point of the epoch
+                idx_en12 = idx_en11 + std_step.T 
+                i = len(idx_en12.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = trigCol[int(idx_en11[:,x]):int(idx_en12[:,x])]
+                    allArrays.append(myArray)
+                endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l = endVals
+                max_len = max([len(arr) for arr in l])
+                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
+                    # appropriate end columns
+                endCols = padded
+                
+                # merge the different sections of the epoch to form the epochs
+                trig_stdpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            # ----------------------------------------------------------------------------------------------------------------
+            # implement trig epoch creation to eeg data
+                # replace trigCol with avg 
+                # get start, desired, post and end col, then merge together
+                # remove data equal to non 1 or o triggers
+            
+            # sort target values
+            eeg_desiredCols = avg[idx_10]
+            eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
+            
+            # sort values before target
+            i = len(idx_st.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = avg[int(idx_st[:,x]):int(idx_11[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            eeg_startVals = allArrays
+            eeg_startCols = eeg_startVals.reshape(no_ones,50)
+            
+            # sort values immediately after target
+            eeg_postTargetCols = avg[idx_en11]
+            eeg_postTargetCols = eeg_postTargetCols.T
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(std_step == std_step[0])
+            if result:
+                # use for equal epochs
+                # sort end values
+                idx_en12 = idx_en11 + std_step.T
+                i = len(idx_en12.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = avg[int(idx_en11[:,x]):int(idx_en12[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                eeg_endCols = endVals.reshape(no_ones,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                # eeg_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                epochs_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                
+            else:
+                # use for unequal epochs
+                # sort end values
+                idx_en12 = idx_en11 + std_step.T 
+                i = len(idx_en12.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = avg[int(idx_en11[:,x]):int(idx_en12[:,x])]
+                    allArrays.append(myArray)
+                eeg_endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l_eeg = eeg_endVals
+                eeg_max_len = max([len(arr) for arr in l_eeg])
+                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
+                    # appropriate end columns
+                eeg_endCols = eeg_padded
+                
+                # merge the different sections of the epoch to form the epochs
+                epochs_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+            
+            # baseline correction
+            prestim = epochs_std[:,0:49]
+            mean_prestim = np.mean(prestim,axis=1)
+            mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
+            bc_std = epochs_std - mean_prestim
+            
+            # artefact rejection
+            p2p = peaktopeak(bc_std)
+            result = np.where(p2p > clip)
+            row = result[0]
+            ar_std = np.delete(bc_std,(row),axis = 0)
+            dif = ((len(bc_std)-len(ar_std))/len(bc_std))*100
+            if len(ar_std) == len(bc_std):
+                print("notice! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
+            elif len(ar_std) < len(bc_std):
+                print("callback! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
+            
+                
+            # averaging
+            avg_std = np.mean(ar_std,axis=0)
+
+            #%%
+            # DEVIANT TONE [2]: extract the time points where stimuli 2 exists
+            dev = stimTrig['dev']
+            dev = dev[0]
+            
+            no_twos = np.count_nonzero(trigCol==2)
+            print("number of dev tone event codes:",no_twos)
+            
+            result = np.where(trigCol == dev)
+            idx_20 = result[0]
+            idx_21 = idx_20.reshape(1,len(idx_20))
+            
+            # sort target values
+            desiredCols = trigCol[idx_20]
+            desiredCols = desiredCols.reshape(len(desiredCols),1)
+            
+            # sort values before target
+            idx_dev = (idx_21 - 50)
+            i = len(idx_dev.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = trigCol[int(idx_dev[:,x]):int(idx_21[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            startVals = allArrays
+            startCols = startVals.reshape(no_twos,50)
+            
+            # sort values immediately after target
+            idx_en21 = idx_21 + 1
+            postTargetCols = trigCol[idx_en21]
+            postTargetCols = postTargetCols.T
+            
+            # sort end values
+                # ----------------------------------------------------------------------------
+                # determination of the number steps to reach the last point of each epoch
+                # the event codes are not evenly timed hence the need for steps determination
+            a = trigCol[idx_20]
+            a = a.reshape(len(a),1)
+            
+            b = Ts[idx_20]
+            
+            c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
+            c = (np.array([0,c_i]))
+            c = c.reshape(1,len(c))
+            
+            dev_distr = np.concatenate((a, b),axis=1)
+            dev_distr = np.vstack((dev_distr,c))
+            
+            dev_diff = np.diff(dev_distr[:,1],axis=0)
+            dev_step = ((dev_diff/0.002)-1)
+            dev_step = np.where(dev_step > 447, 447, dev_step)
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(dev_step == dev_step[0])
+            if result:
+                # sort end values
+                idx_en22 = idx_en21 + dev_step.T
+                i = len(idx_en22.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = trigCol[int(idx_en21[:,x]):int(idx_en22[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                endCols = endVals.reshape(no_twos,447)
+            
+                    # merge the different sections of the epoch to form the epochs
+                trig_dev = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            else:
+                # use when we have unequal epoch steps
+                    # apply the step to get the index of the last point of the epoch
+                idx_en22 = idx_en21 + dev_step.T 
+                i = len(idx_en22.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = trigCol[int(idx_en21[:,x]):int(idx_en22[:,x])]
+                    allArrays.append(myArray)
+                endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l = endVals
+                max_len = max([len(arr) for arr in l])
+                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
+                    # appropriate end columns
+                endCols = padded
+                
+                    # merge the different sections of the epoch to form the epochs
+                trig_devpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            # ----------------------------------------------------------------------------------------------------------------
+            # implement trig epoch creation to eeg data
+                # replace trigCol with avg 
+                # get start, desired, post and end col, then merge together
+                # remove data equal to non 1 or o triggers
+            
+            # sort target values
+            eeg_desiredCols = avg[idx_20]
+            eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
+            
+            # sort values before target
+            i = len(idx_dev.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = avg[int(idx_dev[:,x]):int(idx_21[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            eeg_startVals = allArrays
+            eeg_startCols = eeg_startVals.reshape(no_twos,50)
+            
+            # sort values immediately after target
+            eeg_postTargetCols = avg[idx_en21]
+            eeg_postTargetCols = eeg_postTargetCols.T
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(dev_step == dev_step[0])
+            if result:
+                # use for equal epochs
+                # sort end values
+                idx_en22 = idx_en21 + dev_step.T
+                i = len(idx_en22.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = avg[int(idx_en21[:,x]):int(idx_en22[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                eeg_endCols = endVals.reshape(no_twos,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                # eeg_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                epochs_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                
+            else:
+                # use for unequal epochs: fill steps with zeros 
+                # sort end values
+                idx_en22 = idx_en21 + dev_step.T 
+                i = len(idx_en22.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = avg[int(idx_en21[:,x]):int(idx_en22[:,x])]
+                    allArrays.append(myArray)
+                eeg_endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l_eeg = eeg_endVals
+                eeg_max_len = max([len(arr) for arr in l_eeg])
+                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
+                    # appropriate end columns
+                eeg_endCols = eeg_padded
+                
+                # merge the different sections of the epoch to form the epochs
+                epochs_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                # eeg_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+            
+            # baseline correction
+            prestim = epochs_dev[:,0:49]
+            mean_prestim = np.mean(prestim,axis=1)
+            mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
+            bc_dev = epochs_dev - mean_prestim
+            
+            # artefact rejection
+            p2p = peaktopeak(bc_dev)
+            result = np.where(p2p > clip)
+            row = result[0]
+            ar_dev = np.delete(bc_dev,(row),axis = 0)
+            dif = ((len(bc_dev)-len(ar_dev))/len(bc_dev))*100
+            if len(ar_dev) == len(bc_dev):
+                print("notice! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
+            elif len(ar_dev) < len(bc_dev):
+                print("callback! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
+            
+            # averaging
+            avg_dev = np.mean(ar_dev,axis=0)
+            return avg_std,avg_dev,ar_std,ar_dev
+        # algorithm function returns avg_std,avg_dev,ar_std,ar_dev
+        out_final = []
+        for i in range(len(channel_data.T)):
+            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip))
+        out_final = np.asarray(out_final).T
+        out_final = out_final.transpose()
+        return out_final
+
+    def N400(self,trigger_channel,eegData,period,stimTrig,clip):
+        """
+          Inputs: trigger channels, bandpass filtered data for all channels, time period,
+                  stimTrig, clip value
+        """
+        trigger_channel,channel_data,period,stimTrig,clip = trigger_channel,eegData,period,stimTrig,clip
+        def algorithm(trigger_channel,channel_data,period,stimTrig,clip):
+            trigger_data = rising_edge(trigger_channel)
+            trigCol = trigger_data
+            avg = channel_data 
+            Ts = period
+            # congruent word [4,7]: extract the time points where stimuli 1 exists
+            con = stimTrig['con']
+            con = con[0:2]
+            con = (np.array([con])).T
+            
+            no_fours = np.count_nonzero(trigCol==4)
+            no_sevens = np.count_nonzero(trigCol==7)
+            no_cons = no_fours + no_sevens
+            print("number of con word event codes:",no_cons)
+            
+            result = np.where(trigCol == con[0])
+            idx_30i = result[0]
+            idx_30i = idx_30i.reshape(len(idx_30i),1)
+            result = np.where(trigCol == con[1])
+            idx_30ii = result[0]
+            idx_30ii = idx_30ii.reshape(len(idx_30ii),1)
+            idx_30 = np.vstack((idx_30i,idx_30ii))
+            idx_31 = idx_30.reshape(1,len(idx_30))
+            
+            
+            # sort target values
+            desiredCols = trigCol[idx_30]
+            desiredCols = desiredCols.reshape(len(desiredCols),1)
+            
+            # sort values before target
+            idx_con = (idx_31 - 50)
+            i = len(idx_con.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = trigCol[int(idx_con[:,x]):int(idx_31[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            startVals = allArrays
+            startCols = startVals.reshape(no_cons,50)
+            
+            # sort values immediately after target
+            idx_en31 = idx_31 + 1
+            postTargetCols = trigCol[idx_en31]
+            postTargetCols = postTargetCols.T
+            
+            # sort end values
+                # ----------------------------------------------------------------------------
+                # determination of the number steps to reach the last point of each epoch
+                # the event codes are not evenly timed hence the need for steps determination
+            a = trigCol[idx_30]
+            a = a.reshape(len(a),1)
+            
+            b = Ts[idx_30]
+            b = b.reshape(len(idx_30),1)
+            
+            c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
+            c = (np.array([0,c_i]))
+            c = c.reshape(1,len(c))
+            
+            con_distr = np.concatenate((a, b),axis=1)
+            con_distr = np.vstack((con_distr,c))
+            
+            con_diff = np.diff(con_distr[:,1],axis=0)
+            con_step = ((con_diff/0.002)-1)
+            con_step = np.where(con_step > 447, 447, con_step)
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(con_step == con_step[0])
+            if result:
+                # use for equal epoch steps
+                # sort end values
+                idx_en32 = idx_en31 + con_step.T
+                i = len(idx_en32.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = trigCol[int(idx_en31[:,x]):int(idx_en32[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                endCols = endVals.reshape(no_cons,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                trig_con = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            else:
+                # use when we have unequal epoch steps
+                    # --------------------------------------------
+                    # apply the step to get the index of the last point of the epoch
+                idx_en32 = idx_en31 + con_step.T 
+                i = len(idx_en32.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = trigCol[int(idx_en31[:,x]):int(idx_en32[:,x])]
+                    allArrays.append(myArray)
+                endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l = endVals
+                max_len = max([len(arr) for arr in l])
+                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
+                    # appropriate end columns
+                endCols = padded
+                
+                # merge the different sections of the epoch to form the epochs
+                trig_conpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            # ----------------------------------------------------------------------------------------------------------------
+            # implement trig epoch creation to eeg data
+                # replace trigCol with avg 
+                # get start, desired, post and end col, then merge together
+                # remove data equal to non 1 or o triggers
+            
+            # sort target values
+            eeg_desiredCols = avg[idx_30]
+            eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
+            
+            # sort values before target
+            i = len(idx_con.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = avg[int(idx_con[:,x]):int(idx_31[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            eeg_startVals = allArrays
+            eeg_startCols = eeg_startVals.reshape(no_cons,50)
+            
+            # sort values immediately after target
+            eeg_postTargetCols = avg[idx_en31]
+            eeg_postTargetCols = eeg_postTargetCols.T
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(con_step == con_step[0])
+            if result:
+                # use for equal epochs
+                # sort end values
+                idx_en32 = idx_en31 + con_step.T
+                i = len(idx_en32.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = avg[int(idx_en31[:,x]):int(idx_en32[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                eeg_endCols = endVals.reshape(no_cons,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                # eeg_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                epochs_con = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                
+            else:
+                # use for unequal epochs
+                # sort end values
+                idx_en32 = idx_en31 + con_step.T 
+                i = len(idx_en32.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = avg[int(idx_en31[:,x]):int(idx_en32[:,x])]
+                    allArrays.append(myArray)
+                eeg_endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l_eeg = eeg_endVals
+                eeg_max_len = max([len(arr) for arr in l_eeg])
+                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
+                    # appropriate end columns
+                eeg_endCols = eeg_padded
+                
+                # merge the different sections of the epoch to form the epochs
+                epochs_con = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+            
+            
+            # baseline correction
+            prestim = epochs_con[:,0:49]
+            mean_prestim = np.mean(prestim,axis=1)
+            mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
+            bc_con = epochs_con - mean_prestim
+            
+            # artefact rejection
+            p2p = peaktopeak(bc_con)
+            result = np.where(p2p > clip)
+            row = result[0]
+            ar_con = np.delete(bc_con,(row),axis = 0)
+            dif = ((len(bc_con)-len(ar_con))/len(bc_con))*100
+            if len(ar_con) == len(bc_con):
+                print("notice! epochs lost for con word:","{:.2%}".format((int(dif))/100))
+            elif len(ar_con) < len(bc_con):
+                print("callback! epochs lost for con word:","{:.2%}".format((int(dif))/100))
+            
+            # averaging
+            avg_con = np.mean(ar_con,axis=0)
+            
+            
+            # %%
+            # incongruent word [4,7]: extract the time points where stimuli 1 exists
+            inc = stimTrig['inc']
+            inc = inc[0:2]
+            inc = (np.array([inc])).T
+            
+            no_fives = np.count_nonzero(trigCol==5)
+            no_eights = np.count_nonzero(trigCol==8)
+            no_incs = no_fives + no_eights
+            print("number of inc word event codes:",no_incs)
+            
+            result = np.where(trigCol == inc[0])
+            idx_40i = result[0]
+            idx_40i = idx_40i.reshape(len(idx_40i),1)
+            result = np.where(trigCol == inc[1])
+            idx_40ii = result[0]
+            idx_40ii = idx_40ii.reshape(len(idx_40ii),1)
+            idx_40 = np.vstack((idx_40i,idx_40ii))
+            idx_41 = idx_40.reshape(1,len(idx_40))
+            
+            
+            # sort target values
+            desiredCols = trigCol[idx_40]
+            desiredCols = desiredCols.reshape(len(desiredCols),1)
+            
+            # sort values before target
+            idx_inc = (idx_41 - 50)
+            i = len(idx_inc.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = trigCol[int(idx_inc[:,x]):int(idx_41[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            startVals = allArrays
+            startCols = startVals.reshape(no_incs,50)
+            
+            # sort values immediately after target
+            idx_en41 = idx_41 + 1
+            postTargetCols = trigCol[idx_en41]
+            postTargetCols = postTargetCols.T
+            
+            # sort end values
+                # ----------------------------------------------------------------------------
+                # determination of the number steps to reach the last point of each epoch
+                # the event codes are not evenly timed hence the need for steps determination
+            a = trigCol[idx_40]
+            a = a.reshape(len(a),1)
+            
+            b = Ts[idx_40]
+            b = b.reshape(len(idx_40),1)
+            
+            c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
+            c = (np.array([0,c_i]))
+            c = c.reshape(1,len(c))
+            
+            inc_distr = np.concatenate((a, b),axis=1)
+            inc_distr = np.vstack((inc_distr,c))
+            
+            inc_diff = np.diff(inc_distr[:,1],axis=0)
+            inc_step = ((inc_diff/0.002)-1)
+            inc_step = np.where(inc_step > 447, 447, inc_step)
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(inc_step == inc_step[0])
+            if result:
+                # use for equal epoch steps
+                # sort end values
+                idx_en42 = idx_en41 + inc_step.T
+                i = len(idx_en42.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = trigCol[int(idx_en41[:,x]):int(idx_en42[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                endCols = endVals.reshape(no_inc,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                trig_inc = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            else:
+                # use when we have unequal epoch steps
+                    # --------------------------------------------
+                    # apply the step to get the index of the last point of the epoch
+                idx_en42 = idx_en41 + inc_step.T 
+                i = len(idx_en42.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = trigCol[int(idx_en41[:,x]):int(idx_en42[:,x])]
+                    allArrays.append(myArray)
+                endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l = endVals
+                max_len = max([len(arr) for arr in l])
+                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
+                    # appropriate end columns
+                endCols = padded
+                
+                # merge the different sections of the epoch to form the epochs
+                trig_incpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
+            
+            
+            # ----------------------------------------------------------------------------------------------------------------
+            # implement trig epoch creation to eeg data
+                # replace trigCol with avg 
+                # get start, desired, post and end col, then merge together
+                # remove data equal to non 1 or o triggers
+            
+            # sort target values
+            eeg_desiredCols = avg[idx_40]
+            eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
+            
+            # sort values before target
+            i = len(idx_inc.T)
+            allArrays = np.array([])
+            for x in range(i):
+                myArray = avg[int(idx_inc[:,x]):int(idx_41[:,x])]
+                allArrays = np.concatenate([allArrays,myArray])
+            eeg_startVals = allArrays
+            eeg_startCols = eeg_startVals.reshape(no_incs,50)
+            
+            # sort values immediately after target
+            eeg_postTargetCols = avg[idx_en41]
+            eeg_postTargetCols = eeg_postTargetCols.T
+            
+            # check if the number of steps are the same if yes, meaning the epochs have the same length
+            result = np.all(inc_step == inc_step[0])
+            if result:
+                # use for equal epochs
+                # sort end values
+                idx_en42 = idx_en41 + inc_step.T
+                i = len(idx_en42.T)
+                allArrays = np.array([])
+                for x in range(i):
+                    myArray = avg[int(idx_en41[:,x]):int(idx_en42[:,x])]
+                    allArrays = np.concatenate([allArrays,myArray])
+                endVals = allArrays
+                eeg_endCols = endVals.reshape(no_incs,447)
+                
+                # merge the different sections of the epoch to form the epochs
+                # eeg_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                epochs_inc = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+                
+            else:
+                # use for unequal epochs
+                # sort end values
+                idx_en42 = idx_en41 + inc_step.T 
+                i = len(idx_en42.T)
+                allArrays = []
+                for x in range(i):
+                    myArray = avg[int(idx_en41[:,x]):int(idx_en42[:,x])]
+                    allArrays.append(myArray)
+                eeg_endVals = allArrays
+                    # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
+                l_eeg = eeg_endVals
+                eeg_max_len = max([len(arr) for arr in l_eeg])
+                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
+                    # appropriate end columns
+                eeg_endCols = eeg_padded
+                
+                # merge the different sections of the epoch to form the epochs
+                epochs_inc = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
+            
+            # baseline correction
+            prestim = epochs_inc[:,0:49]
+            mean_prestim = np.mean(prestim,axis=1)
+            mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
+            bc_inc = epochs_inc - mean_prestim
+            
+            # artefact rejection
+            p2p = peaktopeak(bc_inc)
+            result = np.where(p2p > clip)
+            row = result[0]
+            ar_inc = np.delete(bc_inc,(row),axis = 0)
+            dif = ((len(bc_inc)-len(ar_inc))/len(bc_inc))*100
+            if len(ar_inc) == len(bc_inc):
+                print("notice! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
+            elif len(ar_inc) < len(bc_inc):
+                print("callback! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
+            # averaging
+            avg_inc = np.mean(ar_inc,axis=0)
+            return avg_con,avg_inc,ar_con,ar_inc
+
+        # algorithm function returns avg_con,avg_inc,ar_con,ar_inc   
+        out_final = []
+        for i in range(len(channel_data.T)):
+            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip))
+        out_final = np.asarray(out_final).T
+        out_final = out_final.transpose()
+        return out_final
+
+def plot_ERPs(data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color_1,color_2,amp_range):
+    """
+    This plot function possesses an array of abilities
+    input:    x-axis: latency
+              y-axis: two 1_D arrays of data
+    Functions is used to:
+    1. Plot two types of erp stimulus
+    2. Plot two different types of erps
+    3. Plot erps for two different groups e.g., N100 for experimental and control group
+    """
+    fig, ax = plt.subplots()
+    time = latency
+    ax.plot(time, data_1,color_1, label = label_1)
+    ax.plot(time, data_2,color_2, label = label_2)
+    ax.set_title(header)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    fig.tight_layout()
+    ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis         
+    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
+    ax.invert_yaxis()
+    #ax.yaxis.grid()
+    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
+    plt.show()
+
+def neurocatchPipeline(filename,localPath,line,fs,Q,stimTrig):
+    # combines preprocessing and post processing
+    # processes erps for each channel
+    raw_data = importFile('neurocatch_1_2')
+    raw_data = raw_data.neurocatch_1_2(filename,localPath)
+    ts = raw_data[2]
+    adp_data = adaptive_filter(raw_data[1],raw_data[4],ts,plot='false')
+    not_data = notch_filter('neurocatch_1_2')
+    not_data = not_data.neurocatch_1_2(adp_data,line,fs,Q)
+    bpData = butter_bandpass_filter('neurocatch_1_2')
+    bp_data = bpData.neurocatch(not_data)
+    trig_chan = raw_data[3]
+    trig_xform = rising_edge(trig_chan)
+    # fz channel
+    fz_tones = tones(trig_xform,bp_data[:,0],ts,stimTrig)
+    fz_words = words(trig_xform,bp_data[:,0],ts,stimTrig)
+    # cz channel
+    cz_tones = tones(trig_xform,bp_data[:,1],ts,stimTrig)
+    cz_words = words(trig_xform,bp_data[:,1],ts,stimTrig)
+    # pz channel
+    pz_tones = tones(trig_xform,bp_data[:,2],ts,stimTrig)
+    pz_words = words(trig_xform,bp_data[:,2],ts,stimTrig)
+    erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(fz_tones[0])))
+    # tones[0] = std; tones[1] = dev; words[0] = con; words[1] = inc
+    return fz_tones[0],fz_tones[1],fz_words[0],fz_words[1],cz_tones[0],cz_tones[1],cz_words[0],cz_words[1],pz_tones[0],pz_tones[1],pz_words[0],pz_words[1],erp_latency,fz_tones[2],fz_tones[3]
+
+def fz_gndavg(scan_id,no_scans,len_epoch,gtec):
+    scans = scan_id
+    zeros_std = np.zeros(len_epoch)
+    zeros_dev = np.zeros(len_epoch)
+    zeros_con = np.zeros(len_epoch)
+    zeros_inc = np.zeros(len_epoch)
+    for i in range(no_scans):
+        erp = pre_post_process(scans[i],gtec)
+        zeros_std = np.vstack(([zeros_std, erp[0]]))
+        zeros_dev = np.vstack(([zeros_dev, erp[1]]))
+        zeros_con = np.vstack(([zeros_con, erp[2]]))
+        zeros_inc = np.vstack(([zeros_inc, erp[3]]))
+
+    def std():
+        scans_std = np.delete(zeros_std,0,axis=0).T
+        avg_std = np.nanmean(scans_std,axis = 1)
+        return scans_std,avg_std,erp[12]
+
+    def dev():
+        scans_dev = np.delete(zeros_dev,0,axis=0).T
+        avg_dev = np.nanmean(scans_dev,axis = 1)
+        return scans_dev,avg_dev,erp[12]
+
+    def con():
+        scans_con = np.delete(zeros_con,0,axis=0).T
+        avg_con = np.nanmean(scans_con,axis = 1)
+        return scans_con,avg_con,erp[12]
+
+    def inc():
+        scans_inc = np.delete(zeros_inc,0,axis=0).T
+        avg_inc = np.nanmean(scans_inc,axis = 1)
+        return scans_inc,avg_inc,erp[12]
+    
+    return std,dev,con,inc
+
+def cz_gndavg(scan_id,no_scans,len_epoch,gtec):
+    scans = scan_id
+    zeros_std = np.zeros(len_epoch)
+    zeros_dev = np.zeros(len_epoch)
+    zeros_con = np.zeros(len_epoch)
+    zeros_inc = np.zeros(len_epoch)
+    for i in range(no_scans):
+        erp = pre_post_process(scans[i],gtec)
+        zeros_std = np.vstack(([zeros_std, erp[4]]))
+        zeros_dev = np.vstack(([zeros_dev, erp[5]]))
+        zeros_con = np.vstack(([zeros_con, erp[6]]))
+        zeros_inc = np.vstack(([zeros_inc, erp[7]]))
+
+    def std():
+        scans_std = np.delete(zeros_std,0,axis=0).T
+        avg_std = np.nanmean(scans_std,axis = 1)
+        return scans_std,avg_std,erp[12]
+
+    def dev():
+        scans_dev = np.delete(zeros_dev,0,axis=0).T
+        avg_dev = np.nanmean(scans_dev,axis = 1)
+        return scans_dev,avg_dev,erp[12]
+
+    def con():
+        scans_con = np.delete(zeros_con,0,axis=0).T
+        avg_con = np.nanmean(scans_con,axis = 1)
+        return scans_con,avg_con,erp[12]
+
+    def inc():
+        scans_inc = np.delete(zeros_inc,0,axis=0).T
+        avg_inc = np.nanmean(scans_inc,axis = 1)
+        return scans_inc,avg_inc,erp[12]
+    
+    return std,dev,con,inc
+
+def pz_gndavg(scan_id,no_scans,len_epoch,gtec):
+    scans = scan_id
+    zeros_std = np.zeros(len_epoch)
+    zeros_dev = np.zeros(len_epoch)
+    zeros_con = np.zeros(len_epoch)
+    zeros_inc = np.zeros(len_epoch)
+    for i in range(no_scans):
+        erp = pre_post_process(scans[i],gtec)
+        zeros_std = np.vstack(([zeros_std, erp[8]]))
+        zeros_dev = np.vstack(([zeros_dev, erp[9]]))
+        zeros_con = np.vstack(([zeros_con, erp[10]]))
+        zeros_inc = np.vstack(([zeros_inc, erp[11]]))
+
+    def std():
+        scans_std = np.delete(zeros_std,0,axis=0).T
+        avg_std = np.nanmean(scans_std,axis = 1)
+        return scans_std,avg_std,erp[12]
+
+    def dev():
+        scans_dev = np.delete(zeros_dev,0,axis=0).T
+        avg_dev = np.nanmean(scans_dev,axis = 1)
+        return scans_dev,avg_dev,erp[12]
+
+    def con():
+        scans_con = np.delete(zeros_con,0,axis=0).T
+        avg_con = np.nanmean(scans_con,axis = 1)
+        return scans_con,avg_con,erp[12]
+
+    def inc():
+        scans_inc = np.delete(zeros_inc,0,axis=0).T
+        avg_inc = np.nanmean(scans_inc,axis = 1)
+        return scans_inc,avg_inc,erp[12]
+    
+    return std,dev,con,inc
+
+def fz_sngavg(scan_id,no_scans,len_epoch,gtec):
+    scans = scan_id
+    zeros_std = np.zeros(len_epoch)
+    zeros_dev = np.zeros(len_epoch)
+    zeros_con = np.zeros(len_epoch)
+    zeros_inc = np.zeros(len_epoch)
+    for i in range(no_scans):
+        erp = pre_post_process(scans[i],gtec)
+        zeros_std = np.vstack(([zeros_std, erp[0]]))
+        zeros_dev = np.vstack(([zeros_dev, erp[1]]))
+        zeros_con = np.vstack(([zeros_con, erp[2]]))
+        zeros_inc = np.vstack(([zeros_inc, erp[3]]))
+
+    def std():
+        scans_std = np.delete(zeros_std,0,axis=0).T
+        return scans_std,erp[12]
+
+    def dev():
+        scans_dev = np.delete(zeros_dev,0,axis=0).T
+        return scans_dev,erp[12]
+
+    def con():
+        scans_con = np.delete(zeros_con,0,axis=0).T
+        return scans_con,erp[12]
+
+    def inc():
+        scans_inc = np.delete(zeros_inc,0,axis=0).T
+        return scans_inc,erp[12]
+    
+    return std,dev,con,inc
+
+def cz_sngavg(scan_id,no_scans,len_epoch,gtec):
+    scans = scan_id
+    zeros_std = np.zeros(len_epoch)
+    zeros_dev = np.zeros(len_epoch)
+    zeros_con = np.zeros(len_epoch)
+    zeros_inc = np.zeros(len_epoch)
+    for i in range(no_scans):
+        erp = pre_post_process(scans[i],gtec)
+        zeros_std = np.vstack(([zeros_std, erp[4]]))
+        zeros_dev = np.vstack(([zeros_dev, erp[5]]))
+        zeros_con = np.vstack(([zeros_con, erp[6]]))
+        zeros_inc = np.vstack(([zeros_inc, erp[7]]))
+
+    def std():
+        scans_std = np.delete(zeros_std,0,axis=0).T
+        return scans_std,erp[12]
+
+    def dev():
+        scans_dev = np.delete(zeros_dev,0,axis=0).T
+        return scans_dev,erp[12]
+
+    def con():
+        scans_con = np.delete(zeros_con,0,axis=0).T
+        return scans_con,erp[12]
+
+    def inc():
+        scans_inc = np.delete(zeros_inc,0,axis=0).T
+        return scans_inc,erp[12]
+    
+    return std,dev,con,inc
+
+def pz_sngavg(scan_id,no_scans,len_epoch,gtec):
+    scans = scan_id
+    zeros_std = np.zeros(len_epoch)
+    zeros_dev = np.zeros(len_epoch)
+    zeros_con = np.zeros(len_epoch)
+    zeros_inc = np.zeros(len_epoch)
+    for i in range(no_scans):
+        erp = pre_post_process(scans[i],gtec)
+        zeros_std = np.vstack(([zeros_std, erp[8]]))
+        zeros_dev = np.vstack(([zeros_dev, erp[9]]))
+        zeros_con = np.vstack(([zeros_con, erp[10]]))
+        zeros_inc = np.vstack(([zeros_inc, erp[11]]))
+
+    def std():
+        scans_std = np.delete(zeros_std,0,axis=0).T
+        return scans_std,erp[12]
+
+    def dev():
+        scans_dev = np.delete(zeros_dev,0,axis=0).T
+        return scans_dev,erp[12]
+
+    def con():
+        scans_con = np.delete(zeros_con,0,axis=0).T
+        return scans_con,erp[12]
+
+    def inc():
+        scans_inc = np.delete(zeros_inc,0,axis=0).T
+        return scans_inc,erp[12]
+    
+    return std,dev,con,inc
+
+def ptp_erpscan(peak_val,erp_data,subjs_data):
+    p2p = peaktopeak(erp_data.T)
+    result_1 = (np.where(p2p > peak_val))[0]
+    acpt_erp = np.delete(erp_data.T,(result_1),axis = 0)
+    result_2 = [~np.isnan(acpt_erp).any(axis=1)]
+    acpt_erp = acpt_erp[result_2]
+    acpt_subjs = np.delete(subjs_data,(result_1),axis = 0)
+    acpt_subjs = acpt_subjs[result_2]
+    return acpt_erp,acpt_subjs
+
+
+# signal quality evaluating functions
 def rolling_window(array, window_size,freq):
     shape = (array.shape[0] - window_size + 1, window_size)
     strides = (array.strides[0],) + array.strides
@@ -887,859 +1718,6 @@ def print_array(arr):
         for elem in a:
             print("{}".format(elem).rjust(3), end="    ")
         print(end="\n")
-
-def rising_edge(data):
-    # used in trigger channel development before epoching
-    trig = data
-    trg = (trig >= 1) & (trig < 9)
-    trig[trg > 1] = 0     # cut off any onset offset triggers outside the normal range.
-    diff = np.diff(trig)
-    t = diff > 0  # rising edges assume true
-    k = np.array([ False])
-    k = k.reshape(1,len(k))
-    pos = np.concatenate((k, t),axis=1)
-    trig[~pos] = 0
-    newtrig = trig 
-    trigCol = newtrig
-    trigCol = trigCol.T
-    trigCol = trigCol.reshape(len(trigCol))
-    return trigCol
-
-def peaktopeak(data):
-    # used for artifact rejection
-    a = np.amax(data, axis = 1)
-    b = np.amin(data, axis = 1)
-    p2p = a-b
-    return p2p
-
-def tones(trigger_data,channel_data,period,stimTrig,clip):
-    trigCol = trigger_data
-    avg = channel_data 
-    Ts = period
-    # STANDARD TONE [1]: extract the time points where stimuli 1 exists
-    std = stimTrig['std']
-    std = std[0]
-    
-    no_ones = np.count_nonzero(trigCol==1)
-    print("number of std tone event codes:",no_ones)
-    
-    result = np.where(trigCol == std)
-    idx_10 = result[0]
-    idx_11 = idx_10.reshape(1,len(idx_10))
-    
-    # sort target values
-    desiredCols = trigCol[idx_10]
-    desiredCols = desiredCols.reshape(len(desiredCols),1)
-    
-    # sort values before target
-    idx_st = (idx_11 - 50)
-    i = len(idx_st.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = trigCol[int(idx_st[:,x]):int(idx_11[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    startVals = allArrays
-    startCols = startVals.reshape(no_ones,50)
-    
-    # sort values immediately after target
-    idx_en11 = idx_11 + 1
-    postTargetCols = trigCol[idx_en11]
-    postTargetCols = postTargetCols.T
-    
-    # sort end values
-        # ----------------------------------------------------------------------------
-        # determination of the number steps to reach the last point of each epoch
-        # the event codes are not evenly timed hence the need for steps determination
-    a = trigCol[idx_10]
-    a = a.reshape(len(a),1)
-    
-    b = Ts[idx_10]
-    
-    c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
-    c = (np.array([0,c_i]))
-    c = c.reshape(1,len(c))
-    
-    std_distr = np.concatenate((a, b),axis=1)
-    std_distr = np.vstack((std_distr,c))
-    
-    std_diff = np.diff(std_distr[:,1],axis=0)
-    std_step = ((std_diff/0.002)-1)
-    std_step = np.where(std_step > 447, 447, std_step)
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(std_step == std_step[0])
-    if result:
-        # use for equal epoch steps
-        # sort end values
-        idx_en12 = idx_en11 + std_step.T
-        i = len(idx_en12.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = trigCol[int(idx_en11[:,x]):int(idx_en12[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        endCols = endVals.reshape(no_ones,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        trig_std = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    else:
-        # use when we have unequal epoch steps
-            # --------------------------------------------
-            # apply the step to get the index of the last point of the epoch
-        idx_en12 = idx_en11 + std_step.T 
-        i = len(idx_en12.T)
-        allArrays = []
-        for x in range(i):
-            myArray = trigCol[int(idx_en11[:,x]):int(idx_en12[:,x])]
-            allArrays.append(myArray)
-        endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l = endVals
-        max_len = max([len(arr) for arr in l])
-        padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-            # appropriate end columns
-        endCols = padded
-        
-        # merge the different sections of the epoch to form the epochs
-        trig_stdpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    # ----------------------------------------------------------------------------------------------------------------
-    # implement trig epoch creation to eeg data
-        # replace trigCol with avg 
-        # get start, desired, post and end col, then merge together
-        # remove data equal to non 1 or o triggers
-    
-    # sort target values
-    eeg_desiredCols = avg[idx_10]
-    eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
-    
-    # sort values before target
-    i = len(idx_st.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = avg[int(idx_st[:,x]):int(idx_11[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    eeg_startVals = allArrays
-    eeg_startCols = eeg_startVals.reshape(no_ones,50)
-    
-    # sort values immediately after target
-    eeg_postTargetCols = avg[idx_en11]
-    eeg_postTargetCols = eeg_postTargetCols.T
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(std_step == std_step[0])
-    if result:
-        # use for equal epochs
-        # sort end values
-        idx_en12 = idx_en11 + std_step.T
-        i = len(idx_en12.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = avg[int(idx_en11[:,x]):int(idx_en12[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        eeg_endCols = endVals.reshape(no_ones,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        # eeg_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        epochs_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        
-    else:
-        # use for unequal epochs
-        # sort end values
-        idx_en12 = idx_en11 + std_step.T 
-        i = len(idx_en12.T)
-        allArrays = []
-        for x in range(i):
-            myArray = avg[int(idx_en11[:,x]):int(idx_en12[:,x])]
-            allArrays.append(myArray)
-        eeg_endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l_eeg = eeg_endVals
-        eeg_max_len = max([len(arr) for arr in l_eeg])
-        eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-            # appropriate end columns
-        eeg_endCols = eeg_padded
-        
-        # merge the different sections of the epoch to form the epochs
-        epochs_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-    
-    # baseline correction
-    prestim = epochs_std[:,0:49]
-    mean_prestim = np.mean(prestim,axis=1)
-    mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
-    bc_std = epochs_std - mean_prestim
-    
-    # artefact rejection
-    p2p = peaktopeak(bc_std)
-    result = np.where(p2p > clip)
-    row = result[0]
-    ar_std = np.delete(bc_std,(row),axis = 0)
-    dif = ((len(bc_std)-len(ar_std))/len(bc_std))*100
-    if len(ar_std) == len(bc_std):
-        print("notice! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
-    elif len(ar_std) < len(bc_std):
-        print("callback! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
-    
-        
-    # averaging
-    avg_std = np.mean(ar_std,axis=0)
-
-    #%%
-    # DEVIANT TONE [2]: extract the time points where stimuli 2 exists
-    dev = stimTrig['dev']
-    dev = dev[0]
-    
-    no_twos = np.count_nonzero(trigCol==2)
-    print("number of dev tone event codes:",no_twos)
-    
-    result = np.where(trigCol == dev)
-    idx_20 = result[0]
-    idx_21 = idx_20.reshape(1,len(idx_20))
-    
-    # sort target values
-    desiredCols = trigCol[idx_20]
-    desiredCols = desiredCols.reshape(len(desiredCols),1)
-    
-    # sort values before target
-    idx_dev = (idx_21 - 50)
-    i = len(idx_dev.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = trigCol[int(idx_dev[:,x]):int(idx_21[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    startVals = allArrays
-    startCols = startVals.reshape(no_twos,50)
-    
-    # sort values immediately after target
-    idx_en21 = idx_21 + 1
-    postTargetCols = trigCol[idx_en21]
-    postTargetCols = postTargetCols.T
-    
-    # sort end values
-        # ----------------------------------------------------------------------------
-        # determination of the number steps to reach the last point of each epoch
-        # the event codes are not evenly timed hence the need for steps determination
-    a = trigCol[idx_20]
-    a = a.reshape(len(a),1)
-    
-    b = Ts[idx_20]
-    
-    c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
-    c = (np.array([0,c_i]))
-    c = c.reshape(1,len(c))
-    
-    dev_distr = np.concatenate((a, b),axis=1)
-    dev_distr = np.vstack((dev_distr,c))
-    
-    dev_diff = np.diff(dev_distr[:,1],axis=0)
-    dev_step = ((dev_diff/0.002)-1)
-    dev_step = np.where(dev_step > 447, 447, dev_step)
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(dev_step == dev_step[0])
-    if result:
-        # sort end values
-        idx_en22 = idx_en21 + dev_step.T
-        i = len(idx_en22.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = trigCol[int(idx_en21[:,x]):int(idx_en22[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        endCols = endVals.reshape(no_twos,447)
-    
-            # merge the different sections of the epoch to form the epochs
-        trig_dev = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    else:
-        # use when we have unequal epoch steps
-            # apply the step to get the index of the last point of the epoch
-        idx_en22 = idx_en21 + dev_step.T 
-        i = len(idx_en22.T)
-        allArrays = []
-        for x in range(i):
-            myArray = trigCol[int(idx_en21[:,x]):int(idx_en22[:,x])]
-            allArrays.append(myArray)
-        endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l = endVals
-        max_len = max([len(arr) for arr in l])
-        padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-            # appropriate end columns
-        endCols = padded
-        
-            # merge the different sections of the epoch to form the epochs
-        trig_devpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    # ----------------------------------------------------------------------------------------------------------------
-    # implement trig epoch creation to eeg data
-        # replace trigCol with avg 
-        # get start, desired, post and end col, then merge together
-        # remove data equal to non 1 or o triggers
-    
-    # sort target values
-    eeg_desiredCols = avg[idx_20]
-    eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
-    
-    # sort values before target
-    i = len(idx_dev.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = avg[int(idx_dev[:,x]):int(idx_21[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    eeg_startVals = allArrays
-    eeg_startCols = eeg_startVals.reshape(no_twos,50)
-    
-    # sort values immediately after target
-    eeg_postTargetCols = avg[idx_en21]
-    eeg_postTargetCols = eeg_postTargetCols.T
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(dev_step == dev_step[0])
-    if result:
-        # use for equal epochs
-        # sort end values
-        idx_en22 = idx_en21 + dev_step.T
-        i = len(idx_en22.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = avg[int(idx_en21[:,x]):int(idx_en22[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        eeg_endCols = endVals.reshape(no_twos,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        # eeg_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        epochs_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        
-    else:
-        # use for unequal epochs: fill steps with zeros 
-        # sort end values
-        idx_en22 = idx_en21 + dev_step.T 
-        i = len(idx_en22.T)
-        allArrays = []
-        for x in range(i):
-            myArray = avg[int(idx_en21[:,x]):int(idx_en22[:,x])]
-            allArrays.append(myArray)
-        eeg_endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l_eeg = eeg_endVals
-        eeg_max_len = max([len(arr) for arr in l_eeg])
-        eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-            # appropriate end columns
-        eeg_endCols = eeg_padded
-        
-        # merge the different sections of the epoch to form the epochs
-        epochs_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        # eeg_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-    
-    # baseline correction
-    prestim = epochs_dev[:,0:49]
-    mean_prestim = np.mean(prestim,axis=1)
-    mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
-    bc_dev = epochs_dev - mean_prestim
-    
-    # artefact rejection
-    p2p = peaktopeak(bc_dev)
-    result = np.where(p2p > clip)
-    row = result[0]
-    ar_dev = np.delete(bc_dev,(row),axis = 0)
-    dif = ((len(bc_dev)-len(ar_dev))/len(bc_dev))*100
-    if len(ar_dev) == len(bc_dev):
-        print("notice! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
-    elif len(ar_dev) < len(bc_dev):
-        print("callback! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
-    
-    # averaging
-    avg_dev = np.mean(ar_dev,axis=0)
-    return avg_std,avg_dev,ar_std,ar_dev
-
-def words(trigger_data,channel_data,period,stimTrig,clip):
-    trigCol = trigger_data
-    avg = channel_data 
-    Ts = period
-    # congruent word [4,7]: extract the time points where stimuli 1 exists
-    con = stimTrig['con']
-    con = con[0:2]
-    con = (np.array([con])).T
-    
-    no_fours = np.count_nonzero(trigCol==4)
-    no_sevens = np.count_nonzero(trigCol==7)
-    no_cons = no_fours + no_sevens
-    print("number of con word event codes:",no_cons)
-    
-    result = np.where(trigCol == con[0])
-    idx_30i = result[0]
-    idx_30i = idx_30i.reshape(len(idx_30i),1)
-    result = np.where(trigCol == con[1])
-    idx_30ii = result[0]
-    idx_30ii = idx_30ii.reshape(len(idx_30ii),1)
-    idx_30 = np.vstack((idx_30i,idx_30ii))
-    idx_31 = idx_30.reshape(1,len(idx_30))
-    
-    
-    # sort target values
-    desiredCols = trigCol[idx_30]
-    desiredCols = desiredCols.reshape(len(desiredCols),1)
-    
-    # sort values before target
-    idx_con = (idx_31 - 50)
-    i = len(idx_con.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = trigCol[int(idx_con[:,x]):int(idx_31[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    startVals = allArrays
-    startCols = startVals.reshape(no_cons,50)
-    
-    # sort values immediately after target
-    idx_en31 = idx_31 + 1
-    postTargetCols = trigCol[idx_en31]
-    postTargetCols = postTargetCols.T
-    
-    # sort end values
-        # ----------------------------------------------------------------------------
-        # determination of the number steps to reach the last point of each epoch
-        # the event codes are not evenly timed hence the need for steps determination
-    a = trigCol[idx_30]
-    a = a.reshape(len(a),1)
-    
-    b = Ts[idx_30]
-    b = b.reshape(len(idx_30),1)
-    
-    c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
-    c = (np.array([0,c_i]))
-    c = c.reshape(1,len(c))
-    
-    con_distr = np.concatenate((a, b),axis=1)
-    con_distr = np.vstack((con_distr,c))
-    
-    con_diff = np.diff(con_distr[:,1],axis=0)
-    con_step = ((con_diff/0.002)-1)
-    con_step = np.where(con_step > 447, 447, con_step)
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(con_step == con_step[0])
-    if result:
-        # use for equal epoch steps
-        # sort end values
-        idx_en32 = idx_en31 + con_step.T
-        i = len(idx_en32.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = trigCol[int(idx_en31[:,x]):int(idx_en32[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        endCols = endVals.reshape(no_cons,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        trig_con = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    else:
-        # use when we have unequal epoch steps
-            # --------------------------------------------
-            # apply the step to get the index of the last point of the epoch
-        idx_en32 = idx_en31 + con_step.T 
-        i = len(idx_en32.T)
-        allArrays = []
-        for x in range(i):
-            myArray = trigCol[int(idx_en31[:,x]):int(idx_en32[:,x])]
-            allArrays.append(myArray)
-        endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l = endVals
-        max_len = max([len(arr) for arr in l])
-        padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-            # appropriate end columns
-        endCols = padded
-        
-        # merge the different sections of the epoch to form the epochs
-        trig_conpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    # ----------------------------------------------------------------------------------------------------------------
-    # implement trig epoch creation to eeg data
-        # replace trigCol with avg 
-        # get start, desired, post and end col, then merge together
-        # remove data equal to non 1 or o triggers
-    
-    # sort target values
-    eeg_desiredCols = avg[idx_30]
-    eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
-    
-    # sort values before target
-    i = len(idx_con.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = avg[int(idx_con[:,x]):int(idx_31[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    eeg_startVals = allArrays
-    eeg_startCols = eeg_startVals.reshape(no_cons,50)
-    
-    # sort values immediately after target
-    eeg_postTargetCols = avg[idx_en31]
-    eeg_postTargetCols = eeg_postTargetCols.T
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(con_step == con_step[0])
-    if result:
-        # use for equal epochs
-        # sort end values
-        idx_en32 = idx_en31 + con_step.T
-        i = len(idx_en32.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = avg[int(idx_en31[:,x]):int(idx_en32[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        eeg_endCols = endVals.reshape(no_cons,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        # eeg_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        epochs_con = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        
-    else:
-        # use for unequal epochs
-        # sort end values
-        idx_en32 = idx_en31 + con_step.T 
-        i = len(idx_en32.T)
-        allArrays = []
-        for x in range(i):
-            myArray = avg[int(idx_en31[:,x]):int(idx_en32[:,x])]
-            allArrays.append(myArray)
-        eeg_endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l_eeg = eeg_endVals
-        eeg_max_len = max([len(arr) for arr in l_eeg])
-        eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-            # appropriate end columns
-        eeg_endCols = eeg_padded
-        
-        # merge the different sections of the epoch to form the epochs
-        epochs_con = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-    
-    
-    # baseline correction
-    prestim = epochs_con[:,0:49]
-    mean_prestim = np.mean(prestim,axis=1)
-    mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
-    bc_con = epochs_con - mean_prestim
-    
-    # artefact rejection
-    p2p = peaktopeak(bc_con)
-    result = np.where(p2p > clip)
-    row = result[0]
-    ar_con = np.delete(bc_con,(row),axis = 0)
-    dif = ((len(bc_con)-len(ar_con))/len(bc_con))*100
-    if len(ar_con) == len(bc_con):
-        print("notice! epochs lost for con word:","{:.2%}".format((int(dif))/100))
-    elif len(ar_con) < len(bc_con):
-        print("callback! epochs lost for con word:","{:.2%}".format((int(dif))/100))
-    
-    # averaging
-    avg_con = np.mean(ar_con,axis=0)
-    
-    
-    # %%
-    # incongruent word [4,7]: extract the time points where stimuli 1 exists
-    inc = stimTrig['inc']
-    inc = inc[0:2]
-    inc = (np.array([inc])).T
-    
-    no_fives = np.count_nonzero(trigCol==5)
-    no_eights = np.count_nonzero(trigCol==8)
-    no_incs = no_fives + no_eights
-    print("number of inc word event codes:",no_incs)
-    
-    result = np.where(trigCol == inc[0])
-    idx_40i = result[0]
-    idx_40i = idx_40i.reshape(len(idx_40i),1)
-    result = np.where(trigCol == inc[1])
-    idx_40ii = result[0]
-    idx_40ii = idx_40ii.reshape(len(idx_40ii),1)
-    idx_40 = np.vstack((idx_40i,idx_40ii))
-    idx_41 = idx_40.reshape(1,len(idx_40))
-    
-    
-    # sort target values
-    desiredCols = trigCol[idx_40]
-    desiredCols = desiredCols.reshape(len(desiredCols),1)
-    
-    # sort values before target
-    idx_inc = (idx_41 - 50)
-    i = len(idx_inc.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = trigCol[int(idx_inc[:,x]):int(idx_41[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    startVals = allArrays
-    startCols = startVals.reshape(no_incs,50)
-    
-    # sort values immediately after target
-    idx_en41 = idx_41 + 1
-    postTargetCols = trigCol[idx_en41]
-    postTargetCols = postTargetCols.T
-    
-    # sort end values
-        # ----------------------------------------------------------------------------
-        # determination of the number steps to reach the last point of each epoch
-        # the event codes are not evenly timed hence the need for steps determination
-    a = trigCol[idx_40]
-    a = a.reshape(len(a),1)
-    
-    b = Ts[idx_40]
-    b = b.reshape(len(idx_40),1)
-    
-    c_i = float("%0.3f" % (Ts[int(len(Ts)-1)]))
-    c = (np.array([0,c_i]))
-    c = c.reshape(1,len(c))
-    
-    inc_distr = np.concatenate((a, b),axis=1)
-    inc_distr = np.vstack((inc_distr,c))
-    
-    inc_diff = np.diff(inc_distr[:,1],axis=0)
-    inc_step = ((inc_diff/0.002)-1)
-    inc_step = np.where(inc_step > 447, 447, inc_step)
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(inc_step == inc_step[0])
-    if result:
-        # use for equal epoch steps
-        # sort end values
-        idx_en42 = idx_en41 + inc_step.T
-        i = len(idx_en42.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = trigCol[int(idx_en41[:,x]):int(idx_en42[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        endCols = endVals.reshape(no_inc,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        trig_inc = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    else:
-        # use when we have unequal epoch steps
-            # --------------------------------------------
-            # apply the step to get the index of the last point of the epoch
-        idx_en42 = idx_en41 + inc_step.T 
-        i = len(idx_en42.T)
-        allArrays = []
-        for x in range(i):
-            myArray = trigCol[int(idx_en41[:,x]):int(idx_en42[:,x])]
-            allArrays.append(myArray)
-        endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l = endVals
-        max_len = max([len(arr) for arr in l])
-        padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-            # appropriate end columns
-        endCols = padded
-        
-        # merge the different sections of the epoch to form the epochs
-        trig_incpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
-    
-    
-    # ----------------------------------------------------------------------------------------------------------------
-    # implement trig epoch creation to eeg data
-        # replace trigCol with avg 
-        # get start, desired, post and end col, then merge together
-        # remove data equal to non 1 or o triggers
-    
-    # sort target values
-    eeg_desiredCols = avg[idx_40]
-    eeg_desiredCols = eeg_desiredCols.reshape(len(eeg_desiredCols),1)
-    
-    # sort values before target
-    i = len(idx_inc.T)
-    allArrays = np.array([])
-    for x in range(i):
-        myArray = avg[int(idx_inc[:,x]):int(idx_41[:,x])]
-        allArrays = np.concatenate([allArrays,myArray])
-    eeg_startVals = allArrays
-    eeg_startCols = eeg_startVals.reshape(no_incs,50)
-    
-    # sort values immediately after target
-    eeg_postTargetCols = avg[idx_en41]
-    eeg_postTargetCols = eeg_postTargetCols.T
-    
-    # check if the number of steps are the same if yes, meaning the epochs have the same length
-    result = np.all(inc_step == inc_step[0])
-    if result:
-        # use for equal epochs
-        # sort end values
-        idx_en42 = idx_en41 + inc_step.T
-        i = len(idx_en42.T)
-        allArrays = np.array([])
-        for x in range(i):
-            myArray = avg[int(idx_en41[:,x]):int(idx_en42[:,x])]
-            allArrays = np.concatenate([allArrays,myArray])
-        endVals = allArrays
-        eeg_endCols = endVals.reshape(no_incs,447)
-        
-        # merge the different sections of the epoch to form the epochs
-        # eeg_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        epochs_inc = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-        
-    else:
-        # use for unequal epochs
-        # sort end values
-        idx_en42 = idx_en41 + inc_step.T 
-        i = len(idx_en42.T)
-        allArrays = []
-        for x in range(i):
-            myArray = avg[int(idx_en41[:,x]):int(idx_en42[:,x])]
-            allArrays.append(myArray)
-        eeg_endVals = allArrays
-            # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-        l_eeg = eeg_endVals
-        eeg_max_len = max([len(arr) for arr in l_eeg])
-        eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-            # appropriate end columns
-        eeg_endCols = eeg_padded
-        
-        # merge the different sections of the epoch to form the epochs
-        epochs_inc = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
-    
-    # baseline correction
-    prestim = epochs_inc[:,0:49]
-    mean_prestim = np.mean(prestim,axis=1)
-    mean_prestim = mean_prestim.reshape(len(mean_prestim),1)
-    bc_inc = epochs_inc - mean_prestim
-    
-    # artefact rejection
-    p2p = peaktopeak(bc_inc)
-    result = np.where(p2p > clip)
-    row = result[0]
-    ar_inc = np.delete(bc_inc,(row),axis = 0)
-    dif = ((len(bc_inc)-len(ar_inc))/len(bc_inc))*100
-    if len(ar_inc) == len(bc_inc):
-        print("notice! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
-    elif len(ar_inc) < len(bc_inc):
-        print("callback! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
-    
-    # averaging
-    avg_inc = np.mean(ar_inc,axis=0)
-   
-    return avg_con,avg_inc,ar_con,ar_inc
-
-def tones_plot(avg_std,avg_dev,erp_latency,header,x_label,y_label,amp_range):
-    fig, ax = plt.subplots()
-    time = erp_latency
-    ax.plot(time, avg_std, 'b', label = "standard tones")
-    ax.plot(time, avg_dev, 'r', label = "deviant tones")
-    ax.set_title(header)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    fig.tight_layout()
-    ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis         
-    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
-    ax.invert_yaxis()
-    #ax.yaxis.grid()
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
-    plt.show()
-    return plt.show()
-
-def words_plot(avg_con,avg_inc,erp_latency,header,x_label,y_label,amp_range):
-    fig, ax = plt.subplots()
-    time = erp_latency
-    ax.plot(time, avg_con, 'b', label = "congruent words")
-    ax.plot(time, avg_inc, 'r', label = "incongruent words")
-    ax.set_title(header)
-    plt.xlabel(x_label) 
-    plt.ylabel(y_label)
-    fig.tight_layout()
-    ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis   
-    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
-    ax.invert_yaxis()
-    #ax.yaxis.grid()
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
-    plt.show()
-    return plt.show()
-
-def group_plt(ndm_data,dmn_data,erp_latency,header,x_label,y_label,amp_range):
-    fig, ax = plt.subplots()
-    time = erp_latency
-    ax.plot(time, ndm_data, 'b', label = 'non-dementia')
-    ax.plot(time, dmn_data, 'r', label = 'dementia')
-    ax.set_title(header)
-    plt.xlabel(x_label) 
-    plt.ylabel(y_label)
-    fig.tight_layout()
-    ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis
-    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
-    ax.invert_yaxis()
-    #ax.yaxis.grid()
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
-    return plt.show()
-
-def plt_devTone(data,erp_latency,header,x_label,y_label,amp_range):
-    fig, ax = plt.subplots()
-    time = erp_latency
-    ax.plot(time, data, 'b', label = 'deviant tone')
-    ax.set_title(header)
-    plt.xlabel(x_label) 
-    plt.ylabel(y_label)
-    fig.tight_layout()
-    ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis 
-    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
-    ax.invert_yaxis()
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
-    return plt.show()
-
-def dataPlot(x_data,y_data,header,x_label,y_label,labelx,amp_range):
-    fig, ax = plt.subplots()
-    ax.plot(x_data, y_data, 'b', label = labelx)
-    ax.set_title(header)
-    plt.xlabel(x_label) 
-    plt.ylabel(y_label)
-    fig.tight_layout()
-    ax.xaxis.set_major_locator(MultipleLocator(100))
-    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
-    ax.invert_yaxis()
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
-    a = plt.show()
-    return a
-
-def plt_incWord(data,erp_latency,header,x_label,y_label,amp_range):
-    fig, ax = plt.subplots()
-    time = erp_latency
-    ax.plot(time, data, 'b', label = 'incongruent word')
-    ax.set_title(header)
-    plt.xlabel(x_label) 
-    plt.ylabel(y_label)
-    fig.tight_layout()
-    ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis
-    plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
-    ax.invert_yaxis()
-    plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
-    return plt.show()
-
-def neurocatchPipeline(filename,localPath,line,fs,Q,stimTrig):
-    # combines preprocessing and post processing
-    # processes erps for each channel
-    raw_data = importFile('neurocatch_1_2')
-    raw_data = raw_data.neurocatch_1_2(filename,localPath)
-    ts = raw_data[2]
-    adp_data = adaptive_filter(raw_data[1],raw_data[4],ts,plot='false')
-    not_data = notch_filter('neurocatch_1_2')
-    not_data = not_data.neurocatch_1_2(adp_data,line,fs,Q)
-    bpData = butter_bandpass_filter('neurocatch_1_2')
-    bp_data = bpData.neurocatch(not_data)
-    trig_chan = raw_data[3]
-    trig_xform = rising_edge(trig_chan)
-    # fz channel
-    fz_tones = tones(trig_xform,bp_data[:,0],ts,stimTrig)
-    fz_words = words(trig_xform,bp_data[:,0],ts,stimTrig)
-    # cz channel
-    cz_tones = tones(trig_xform,bp_data[:,1],ts,stimTrig)
-    cz_words = words(trig_xform,bp_data[:,1],ts,stimTrig)
-    # pz channel
-    pz_tones = tones(trig_xform,bp_data[:,2],ts,stimTrig)
-    pz_words = words(trig_xform,bp_data[:,2],ts,stimTrig)
-    erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(fz_tones[0])))
-    # tones[0] = std; tones[1] = dev; words[0] = con; words[1] = inc
-    return fz_tones[0],fz_tones[1],fz_words[0],fz_words[1],cz_tones[0],cz_tones[1],cz_words[0],cz_words[1],pz_tones[0],pz_tones[1],pz_words[0],pz_words[1],erp_latency,fz_tones[2],fz_tones[3]
 
 def sq_chan(data):
     idx_folders = data
@@ -2137,412 +2115,98 @@ def sq_chan(data):
 
     return eegQuality
 
-def latAmp_ERP1(component,temporal_range,latency_array,amplitude_array):
-    t1 = temporal_range[0]
-    absolute_val_array = np.abs(latency_array - t1)
-    smallest_difference_index = absolute_val_array.argmin()
-    closest_element = latency_array[smallest_difference_index]
-    idx_1 = (np.where(latency_array==closest_element))[0]
-    idx_1 = np.asscalar(idx_1)
-
-    t2 = temporal_range[1]
-    absolute_val_array = np.abs(latency_array - t2)
-    smallest_difference_index = absolute_val_array.argmin()
-    closest_element = latency_array[smallest_difference_index]
-    idx_2 = (np.where(latency_array==closest_element))[0]
-    idx_2 = np.asscalar(idx_2)
-
-    # amplitude extraction
-    amplitude_range = amplitude_array[idx_1:idx_2]
-    if component=='n100'or component=='n400':
-        erp = np.amin(amplitude_range)
-        idx_erp = (np.where(amplitude_array==erp))[0]
-        idx_erp = np.asscalar(idx_erp)
-        pre_erp = amplitude_array[idx_1:idx_erp]
-        post_erp = amplitude_array[idx_erp:(len(amplitude_array)-1)]
-        if pre_erp.size == 0:
-            prepeak = 0
-        elif pre_erp.size > 0:
-            prepeak = np.amax(pre_erp)
-        if post_erp.size == 0:
-            post_erp = 0
-        elif post_erp.size > 0:
-            postpeak = np.amax(post_erp)
-        midpoint = np.mean(np.array((abs(prepeak),abs(postpeak))))
-        amplitude_peak = midpoint + abs(erp)
-        # latency extraction
-        if pre_erp.size == 0:
-            lat_1 = 0
-        elif pre_erp.size > 0:
-            idx_prepeak = (np.where(amplitude_array==prepeak))[0]
-            lat_1 = latency_array[idx_prepeak]
-        if post_erp.size == 0:
-            lat_2 = 0
-        elif post_erp.size > 0:
-            idx_postpeak = (np.where(amplitude_array==postpeak))[0]
-            lat_2 = latency_array[idx_postpeak]
-        latency_peak = np.mean(np.array((lat_1,lat_2)))
-        latency_peak = np.asscalar(latency_peak)
-    elif component=='p300':
-        erp = np.amax(amplitude_range)
-        idx_erp = (np.where(amplitude_array==erp))[0]
-        idx_erp = np.asscalar(idx_erp)
-        pre_erp = amplitude_array[idx_1:idx_erp]
-        post_erp = amplitude_array[idx_erp:(len(amplitude_array)-1)]
-        if pre_erp.size == 0:
-            prepeak = 0
-        elif pre_erp.size > 0:
-            prepeak = np.amin(pre_erp)
-        if post_erp.size == 0:
-            post_erp = 0
-        elif post_erp.size > 0:
-            postpeak = np.amin(post_erp)
-        midpoint = np.mean(np.array((abs(prepeak),abs(postpeak))))
-        amplitude_peak = midpoint + abs(erp)
-        # latency extraction
-        if pre_erp.size == 0:
-            lat_1 = 0
-        elif pre_erp.size > 0:
-            idx_prepeak = (np.where(amplitude_array==prepeak))[0]
-            lat_1 = latency_array[idx_prepeak]
-        if post_erp.size == 0:
-            lat_2 = 0
-        elif post_erp.size > 0:
-            idx_postpeak = (np.where(amplitude_array==postpeak))[0]
-            lat_2 = latency_array[idx_postpeak]
-        latency_peak = np.mean(np.array((lat_1,lat_2)))
-        latency_peak = np.asscalar(latency_peak)
-    return latency_peak,amplitude_peak
-
-def fz_gndavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
+def sqf_gnd_avg(no_scans,no_channels,data,channel):
+    metrics = np.array([])
+    no_scans = no_scans
+    no_chans = no_channels
+    channel = channel
+    folders = data
     for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[0]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[1]]))
-        zeros_con = np.vstack(([zeros_con, erp[2]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[3]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        avg_std = np.nanmean(scans_std,axis = 1)
-        return scans_std,avg_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        avg_dev = np.nanmean(scans_dev,axis = 1)
-        return scans_dev,avg_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        avg_con = np.nanmean(scans_con,axis = 1)
-        return scans_con,avg_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        avg_inc = np.nanmean(scans_inc,axis = 1)
-        return scans_inc,avg_inc,erp[12]
+        eegQuality = sq_chan(folders[i])
+        metrics = np.hstack([metrics, eegQuality])
     
-    return std,dev,con,inc
-
-def cz_gndavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[4]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[5]]))
-        zeros_con = np.vstack(([zeros_con, erp[6]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[7]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        avg_std = np.nanmean(scans_std,axis = 1)
-        return scans_std,avg_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        avg_dev = np.nanmean(scans_dev,axis = 1)
-        return scans_dev,avg_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        avg_con = np.nanmean(scans_con,axis = 1)
-        return scans_con,avg_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        avg_inc = np.nanmean(scans_inc,axis = 1)
-        return scans_inc,avg_inc,erp[12]
+    # place scores in respective channels
+    metrics = metrics.reshape((len(metrics)),1)
+    chan_qs = np.int_(metrics.reshape(no_scans,no_chans))
     
-    return std,dev,con,inc
-
-def pz_gndavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[8]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[9]]))
-        zeros_con = np.vstack(([zeros_con, erp[10]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[11]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        avg_std = np.nanmean(scans_std,axis = 1)
-        return scans_std,avg_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        avg_dev = np.nanmean(scans_dev,axis = 1)
-        return scans_dev,avg_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        avg_con = np.nanmean(scans_con,axis = 1)
-        return scans_con,avg_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        avg_inc = np.nanmean(scans_inc,axis = 1)
-        return scans_inc,avg_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def fz_sngavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[0]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[1]]))
-        zeros_con = np.vstack(([zeros_con, erp[2]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[3]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        return scans_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        return scans_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        return scans_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        return scans_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def cz_sngavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[4]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[5]]))
-        zeros_con = np.vstack(([zeros_con, erp[6]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[7]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        return scans_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        return scans_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        return scans_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        return scans_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def pz_sngavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[8]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[9]]))
-        zeros_con = np.vstack(([zeros_con, erp[10]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[11]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        return scans_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        return scans_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        return scans_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        return scans_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def chan_latAmp1():
-    # used to extract amp and lat from multiple channel scans e.g., multiple cz scans    
-    def std(channel_name,latency,range_N100,range_P300,no_scans,data):
-        n100_std = np.tile(np.nan,(1))
-        p300_std = np.tile(np.nan,(1))
-        for i in range(no_scans):
-            std_N1 = latAmp_ERP1('n100',range_N100,latency,data[:,i])
-            std_P3 = latAmp_ERP1('p300',range_P300,latency,data[:,i])
-            n100_std = np.hstack(([n100_std, (std_N1[0],std_N1[1])]))
-            p300_std = np.hstack(([p300_std, (std_P3[0],std_P3[1])]))
-        n100_std = np. delete(n100_std, 0)
-        p300_std = np. delete(p300_std, 0)
-        n100_std = n100_std.reshape(no_scans,2)
-        p300_std = p300_std.reshape(no_scans,2)
-
-        p300_lat_max = np.amax(p300_std[:,0])
-        p300_lat_min = np.amin(p300_std[:,0])
-        p300_amp_max = np.amax(p300_std[:,1])
-        p300_amp_min = np.amin(p300_std[:,1])
-        p300_lat_best = p300_lat_min
-        p300_amp_best = p300_amp_max
-
-        n100_lat_max = np.amax(n100_std[:,0])
-        n100_lat_min = np.amin(n100_std[:,0])
-        n100_amp_max = np.amax(n100_std[:,1])
-        n100_amp_min = np.amin(n100_std[:,1])
-        n100_lat_best = n100_lat_min
-        n100_amp_best = n100_amp_min
-
-        n100mean = np.mean(n100_std,axis=0)
-        p300mean = np.mean(p300_std,axis=0)
-        n100_mean_lat = n100mean[0]
-        n100_mean_amp = n100mean[1]
-        p300_mean_lat = p300mean[0]
-        p300_mean_amp = p300mean[1]
+    # select channel cz for utilization
+    scansQS = chan_qs[:,channel]
+    # group the scans by either scan 1 or scan 2
+    test_list = folders
+    # using sorted() + groupby()
+    # Initial Character Case Categorization
+    util_func = lambda x: x[0:6]
+    temp = sorted(test_list, key = util_func)
+    runs = [list(ele) for i, ele in groupby(temp, util_func)]
+    countScanTime = []
+    for x in runs:
+       p = (len(x))
+       countScanTime.append(p)
+       
+    # first stage: group the quality scores 
+    runsQS = []
+    for number in countScanTime:
+        runsQS.append(scansQS[:number])
+        scansQS = scansQS[number:]
         
-        print(channel_name,'N100 latency for standard tone:',np.asscalar(n100mean[0]))
-        print(channel_name,'N100 amplitude for standard tone:',np.asscalar(n100mean[1]))
-        print(channel_name,'P300 latency for standard tone:',np.asscalar(p300mean[0]))
-        print(channel_name,'P300 amplitude for standard tone:',np.asscalar(p300mean[1]))
-        return n100_mean_lat,n100_mean_amp,n100_lat_max,n100_lat_min,n100_amp_max,n100_amp_min,n100_lat_best,n100_amp_best,p300_mean_lat,p300_mean_amp,p300_lat_max,p300_lat_min,p300_amp_max,p300_amp_min,p300_lat_best,p300_amp_best,n100_std,p300_std
-
-    def dev(channel_name,latency,range_N100,range_P300,no_scans,data):
-        n100_dev = np.tile(np.nan,(1))
-        p300_dev = np.tile(np.nan,(1))
-        for i in range(no_scans):
-            dev_N1 = latAmp_ERP1('n100',range_N100,latency,data[:,i])
-            dev_P3 = latAmp_ERP1('p300',range_P300,latency,data[:,i])
-            n100_dev = np.hstack(([n100_dev, (dev_N1[0],dev_N1[1])]))
-            p300_dev = np.hstack(([p300_dev, (dev_P3[0],dev_P3[1])]))
-        n100_dev = np. delete(n100_dev, 0)
-        p300_dev = np. delete(p300_dev, 0)
-        n100_dev = n100_dev.reshape(no_scans,2)
-        p300_dev = p300_dev.reshape(no_scans,2)
-
-        p300_lat_max = np.amax(p300_dev[:,0])
-        p300_lat_min = np.amin(p300_dev[:,0])
-        p300_amp_max = np.amax(p300_dev[:,1])
-        p300_amp_min = np.amin(p300_dev[:,1])
-        p300_lat_best = p300_lat_min
-        p300_amp_best = p300_amp_max
-
-        n100_lat_max = np.amax(n100_dev[:,0])
-        n100_lat_min = np.amin(n100_dev[:,0])
-        n100_amp_max = np.amax(n100_dev[:,1])
-        n100_amp_min = np.amin(n100_dev[:,1])
-        n100_lat_best = n100_lat_min
-        n100_amp_best = n100_amp_min
-
-        n100mean = np.mean(n100_dev,axis=0)
-        p300mean = np.mean(p300_dev,axis=0)
-        n100_mean_lat = n100mean[0]
-        n100_mean_amp = n100mean[1]
-        p300_mean_lat = p300mean[0]
-        p300_mean_amp = p300mean[1]
-
-        print(channel_name,'N100 latency for deviant tone:',np.asscalar(n100mean[0]))
-        print(channel_name,'N100 amplitude for deviant tone:',np.asscalar(n100mean[1]))
-        print(channel_name,'P300 latency for deviant tone:',np.asscalar(p300mean[0]))
-        print(channel_name,'P300 amplitude for deviant tone:',np.asscalar(p300mean[1]))
-        
-        return n100_mean_lat,n100_mean_amp,n100_lat_max,n100_lat_min,n100_amp_max,n100_amp_min,n100_lat_best,n100_amp_best,p300_mean_lat,p300_mean_amp,p300_lat_max,p300_lat_min,p300_amp_max,p300_amp_min,p300_lat_best,p300_amp_best,n100_dev,p300_dev
+    # find mean of each element inside the list out
+    avg_runsQS = []
+    for i in range(len(runsQS)):
+       avg_runsQS.append(np.mean(runsQS[i]))
     
-    def con(channel_name,latency,range_N400,no_scans,data):
-        n400_con = np.tile(np.nan,(1))
-        for i in range(no_scans):
-            con_N4 = latAmp_ERP1('n400',range_N400,latency,data[:,i])
-            n400_con = np.hstack(([n400_con, (con_N4[0],con_N4[1])]))
-        n400_con = np. delete(n400_con, 0)
-        n400_con = n400_con.reshape(no_scans,2)
+    
+    #%% extract the number of times group of runs belonging to a particular subject appear
+    # automatically count the group of of scans belonging to participants
+    xscans = []
+    for i in range(len(runs)):
+        xscans.append(runs[i][0])
+    xscans = [x[:4] for x in xscans]
+    count = Counter(map(tuple, xscans))
+    count = pd.DataFrame.from_dict(count, orient='index').reset_index()
+    countSubjRun = (count[0]).tolist()
+    
+    #%%
+    # second stage: use the out_put to compare with the res file to scans per subject
+    avg_runsQS_ = list(avg_runsQS)
+    runs_ = runs
+    subjQS = []
+    subj = []
+    for number in countSubjRun:
+        subjQS.append(avg_runsQS_[:number])
+        avg_runsQS_ = avg_runsQS_[number:]
+        subj.append(runs_[:number])
+        runs_ = runs_[number:]
 
-        n400_lat_max = np.amax(n400_con[:,0])
-        n400_lat_min = np.amin(n400_con[:,0])
-        n400_amp_max = np.amax(n400_con[:,1])
-        n400_amp_min = np.amin(n400_con[:,1])
-        n400_lat_best = n400_lat_min
-        n400_amp_best = n400_amp_min
+    #%% maximum values
+    
+    # scores
+    # find max values amongst grp_scores
+    max_subjQS = []
+    for i in range(len(subjQS)):
+        if subjQS[0] == subjQS[1]:
+            max_subjQS.append((subjQS[i][0]))
+        else:
+            max_subjQS.append(np.amax(subjQS[i]))
+       
+    # locate index of max values amongst grp_scores
+    idx_ = []
+    for i in range(len(subjQS)):
+        idx_.append((np.where(subjQS[i] == max_subjQS[i]))[0])
+        
+    idx__ = []
+    for i in range(len(subjQS)):
+        idx__.append(idx_[i][0])
+    
+    # scans
+    # use the idx of the maximum scores to extract the scans with maximum scores
+    max_subj = []
+    for i in range(len(idx__)):
+        x = idx__[i]
+        max_subj.append(subj[i][x])
+    return max_subj
 
-        n400mean = np.mean(n400_con,axis=0)
-        n400_mean_lat = n400mean[0]
-        n400_mean_amp = n400mean[1]
 
-        print(channel_name,'N400 latency for congruent words:',np.asscalar(n400mean[0]))
-        print(channel_name,'N400 amplitude for congruent words:',np.asscalar(n400mean[1]))
-        return n400_mean_lat,n400_mean_amp,n400_lat_max,n400_lat_min,n400_amp_max,n400_amp_min,n400_lat_best,n400_amp_best,n400_con
-
-    def inc(channel_name,latency,range_N400,no_scans,data):
-        n400_inc = np.tile(np.nan,(1))
-        for i in range(no_scans):
-            inc_N4 = latAmp_ERP1('n400',range_N400,latency,data[:,i])
-            n400_inc = np.hstack(([n400_inc, (inc_N4[0],inc_N4[1])]))
-        n400_inc = np. delete(n400_inc, 0)
-        n400_inc = n400_inc.reshape(no_scans,2)
-
-        n400_lat_max = np.amax(n400_inc[:,0])
-        n400_lat_min = np.amin(n400_inc[:,0])
-        n400_amp_max = np.amax(n400_inc[:,1])
-        n400_amp_min = np.amin(n400_inc[:,1])
-        n400_lat_best = n400_lat_min
-        n400_amp_best = n400_amp_min
-
-        n400mean = np.mean(n400_inc,axis=0)
-        n400_mean_lat = n400mean[0]
-        n400_mean_amp = n400mean[1]
-
-        print(channel_name,'N400 latency for incongruent words:',np.asscalar(n400mean[0]))
-        print(channel_name,'N400 amplitude for incongruent words:',np.asscalar(n400mean[1]))
-        return n400_mean_lat,n400_mean_amp,n400_lat_max,n400_lat_min,n400_amp_max,n400_amp_min,n400_lat_best,n400_amp_best,n400_inc
-
-    return std,dev,con,inc
-
+# Brain Vital Signs or Elemental Brain Scores functions
 def normData_analysis(data,rem_outliers):
 
     if rem_outliers==0:
@@ -2657,106 +2321,6 @@ def normData_analysis(data,rem_outliers):
 
     return cleaned_data,n100_amp,n100_lat,n400_amp,n400_lat,p300_amp,p300_lat
 
-def sqf_gnd_avg(no_scans,no_channels,data,channel):
-    metrics = np.array([])
-    no_scans = no_scans
-    no_chans = no_channels
-    channel = channel
-    folders = data
-    for i in range(no_scans):
-        eegQuality = sq_chan(folders[i])
-        metrics = np.hstack([metrics, eegQuality])
-    
-    # place scores in respective channels
-    metrics = metrics.reshape((len(metrics)),1)
-    chan_qs = np.int_(metrics.reshape(no_scans,no_chans))
-    
-    # select channel cz for utilization
-    scansQS = chan_qs[:,channel]
-    # group the scans by either scan 1 or scan 2
-    test_list = folders
-    # using sorted() + groupby()
-    # Initial Character Case Categorization
-    util_func = lambda x: x[0:6]
-    temp = sorted(test_list, key = util_func)
-    runs = [list(ele) for i, ele in groupby(temp, util_func)]
-    countScanTime = []
-    for x in runs:
-       p = (len(x))
-       countScanTime.append(p)
-       
-    # first stage: group the quality scores 
-    runsQS = []
-    for number in countScanTime:
-        runsQS.append(scansQS[:number])
-        scansQS = scansQS[number:]
-        
-    # find mean of each element inside the list out
-    avg_runsQS = []
-    for i in range(len(runsQS)):
-       avg_runsQS.append(np.mean(runsQS[i]))
-    
-    
-    #%% extract the number of times group of runs belonging to a particular subject appear
-    # automatically count the group of of scans belonging to participants
-    xscans = []
-    for i in range(len(runs)):
-        xscans.append(runs[i][0])
-    xscans = [x[:4] for x in xscans]
-    count = Counter(map(tuple, xscans))
-    count = pd.DataFrame.from_dict(count, orient='index').reset_index()
-    countSubjRun = (count[0]).tolist()
-    
-    #%%
-    # second stage: use the out_put to compare with the res file to scans per subject
-    avg_runsQS_ = list(avg_runsQS)
-    runs_ = runs
-    subjQS = []
-    subj = []
-    for number in countSubjRun:
-        subjQS.append(avg_runsQS_[:number])
-        avg_runsQS_ = avg_runsQS_[number:]
-        subj.append(runs_[:number])
-        runs_ = runs_[number:]
-
-    #%% maximum values
-    
-    # scores
-    # find max values amongst grp_scores
-    max_subjQS = []
-    for i in range(len(subjQS)):
-        if subjQS[0] == subjQS[1]:
-            max_subjQS.append((subjQS[i][0]))
-        else:
-            max_subjQS.append(np.amax(subjQS[i]))
-       
-    # locate index of max values amongst grp_scores
-    idx_ = []
-    for i in range(len(subjQS)):
-        idx_.append((np.where(subjQS[i] == max_subjQS[i]))[0])
-        
-    idx__ = []
-    for i in range(len(subjQS)):
-        idx__.append(idx_[i][0])
-    
-    # scans
-    # use the idx of the maximum scores to extract the scans with maximum scores
-    max_subj = []
-    for i in range(len(idx__)):
-        x = idx__[i]
-        max_subj.append(subj[i][x])
-    return max_subj
-
-def ptp_erpscan(peak_val,erp_data,subjs_data):
-    p2p = peaktopeak(erp_data.T)
-    result_1 = (np.where(p2p > peak_val))[0]
-    acpt_erp = np.delete(erp_data.T,(result_1),axis = 0)
-    result_2 = [~np.isnan(acpt_erp).any(axis=1)]
-    acpt_erp = acpt_erp[result_2]
-    acpt_subjs = np.delete(subjs_data,(result_1),axis = 0)
-    acpt_subjs = acpt_subjs[result_2]
-    return acpt_erp,acpt_subjs
-
 def ebs(parameter,mean,max,min):
     if parameter=='amplitude':
         if mean > max:
@@ -2776,36 +2340,6 @@ def ebs(parameter,mean,max,min):
             score = (round((1 - abs((mean-best)/(max-min))).item(),2))*100
     return score
 
-def ncPipeline(version,filename,localPath,line,fs,Q,stimTrig,lowcut,highcut,order,clip,dispIMG,y_lim,figsize,pltclr,titles):
-    # combines preprocessing and post processing
-    # processes erps for each channel
-    fileImportOutput = importFile.neurocatch()
-    fileObjects = fileImportOutput.init(version,filename,localPath,dispIMG,y_lim,figsize,pltclr,titles)
-    ncPipeline.rawEEG = fileObjects[1]
-    ncPipeline.timePeriod = fileObjects[2]
-    ncPipeline.triggerChannel= fileObjects[3]
-    ncPipeline.rawEOG = fileObjects[4]
-    filterOutput = filters()
-    x_lim = [ncPipeline.timePeriod[0], ncPipeline.timePeriod[-1]]
-    ncPipeline.adaptiveFilterOutput = filterOutput.adaptive(ncPipeline.rawEEG,ncPipeline.rawEOG,ncPipeline.timePeriod,dispIMG,x_lim,y_lim,figsize,pltclr,titles)
-    ncPipeline.notchFilterOutput = filterOutput.notch(ncPipeline.adaptiveFilterOutput,ncPipeline.timePeriod,line,fs,Q,dispIMG,x_lim,y_lim,figsize,pltclr,titles)
-    ncPipeline.bandPassFOutput = filterOutput.butterBandPass(ncPipeline.notchFilterOutput,ncPipeline.timePeriod,lowcut,highcut,fs,order,dispIMG,x_lim,y_lim,figsize,pltclr,titles)
-    if bool(clip)==True:
-        trig_chan = ncPipeline.triggerChannel
-        trig_xform = rising_edge(trig_chan)
-        # fz channel
-        ncPipeline.fz_tones = tones(trig_xform,ncPipeline.bandPassFOutput[:,0],ncPipeline.timePeriod,stimTrig,clip)
-        ncPipeline.fz_words = words(trig_xform,ncPipeline.bandPassFOutput[:,0],ncPipeline.timePeriod,stimTrig,clip)
-        # cz channel
-        ncPipeline.cz_tones = tones(trig_xform,ncPipeline.bandPassFOutput[:,1],ncPipeline.timePeriod,stimTrig,clip)
-        ncPipeline.cz_words = words(trig_xform,ncPipeline.bandPassFOutput[:,1],ncPipeline.timePeriod,stimTrig,clip)
-        # pz channel
-        ncPipeline.pz_tones = tones(trig_xform,ncPipeline.bandPassFOutput[:,2],ncPipeline.timePeriod,stimTrig,clip)
-        ncPipeline.pz_words = words(trig_xform,ncPipeline.bandPassFOutput[:,2],ncPipeline.timePeriod,stimTrig,clip)
-        ncPipeline.erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(ncPipeline.fz_tones[0])))
-    elif bool(clip)==False:
-        pass
-
 def plots(x,y,titles,figsize,pltclr):
     x_lim = [x[0],x[-1]]
     if len(y.T) % 2 != 0:
@@ -2819,4 +2353,5 @@ def plots(x,y,titles,figsize,pltclr):
         #axs.set_ylim([np.max(y[:,i])+1000,np.min(y[:,i])-1000])
         axs.set_xlim([x_lim[0],x_lim[1]])
         axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
+        axs.tick_params(axis='both', which='major', labelsize=8)
         axs.label_outer()
