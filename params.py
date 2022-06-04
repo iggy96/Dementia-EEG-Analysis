@@ -4,6 +4,8 @@ from df_lib import np
 figure_size = (6,16)
 plot_color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
 channelNames = ['Fz','Cz','Pz','P07','OZ']
+win_size = 2560
+step_size = 1280
 
 # EEG parameters
 epoch = 1000  # ms - total window size
