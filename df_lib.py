@@ -46,3 +46,7 @@ from datetime import datetime
 import numpy
 import itertools
 import os, sys
+import pywt
+from pywt import wavedec, waverec
+from sklearn.cross_decomposition import CCA
+import emd
