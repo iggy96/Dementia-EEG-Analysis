@@ -146,13 +146,13 @@ plt.plot(ocularArtifacts,color='blue')
 plt.show()
 
 # Signal to Artifact Ratio (SAR)
-sar = 10*np.log10(np.std(ocularArtifacts)/np.std(ocularArtifacts-denoised_ocularArtifacts))
-print('Signal to Artifact Ratio (SAR):',sar)
+#sar = 10*np.log10(np.std(ocularArtifacts)/np.std(ocularArtifacts-denoised_ocularArtifacts))
+#print('Signal to Artifact Ratio (SAR):',sar)
 
 # Mean Square Error (MSE)
 # Smaller values of MSE means that the denoised EEG is more closed to clean EEG
-mse = np.mean((denoised_ocularArtifacts-ocularArtifacts)**2)/len(ocularArtifacts)
-print('Mean Squared Error (MSE):',mse)
+#mse = np.mean((denoised_ocularArtifacts-ocularArtifacts)**2)/len(ocularArtifacts)
+#print('Mean Squared Error (MSE):',mse)
 
 # Dump denoised OA signal inside original EEG
 s = original_EEG
@@ -179,9 +179,10 @@ plt.show()
 
 
 """
-Detection of Muscular Artifacts 
-Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
-and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
+-> Detection of Muscular Artifacts 
+    Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+    and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
+-> MA is detected if mad is greater than or equal to 1, hence removal tecnique is applied
 """
 freqs,psd = signal.welch(original_EEG,fs=500,nperseg=1024)
 
@@ -201,3 +202,33 @@ psd_30_100Hz = psd[idx_30Hz[0][0]:idx_100Hz[0][0]]
 psd_0_100Hz = psd[idx_0Hz[0][0]:idx_100Hz[0][0]]
 
 mad = np.sum(psd_30_100Hz)/np.sum(psd_0_100Hz)
+
+"""
+Removal of Muscular Artifacts 
+Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
+"""
+from sklearn.cross_decomposition import CCA
+import emd
+
+# Extract imfs from original EEG
+imfs = emd.sift.sift(original_EEG)
+x_t = imfs
+y_t = x_t-1
+cca = CCA(n_components=len(x_t.T))
+cca.fit(x_t,y_t)
+x_c,y_c= cca.transform(x_t,y_t)
+
+# Apply threshold to the CCA coefficients
+x_c[(x_c) > mad] = 0
+# Inverse CCA to get the denoised signal
+x_c_old = cca.inverse_transform(x_c)
+# Take mean of the IMFs
+recov_signal = np.mean(x_c_old,axis=1)
+
+plt.plot(recov_signal,color='red')
+plt.title('Recovered signal')
+plt.show()
+plt.plot(original_EEG,color='blue')
+plt.title('Original signal')
+
