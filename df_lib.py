@@ -11,6 +11,7 @@ from sklearn.decomposition import FastICA
 from scipy import signal
 from numpy import fft
 from scipy.fftpack import fft, dct
+from scipy.fft import fft, fftfreq
 from glob import glob
 import glob
 from scipy.stats import iqr
@@ -50,3 +51,4 @@ import pywt
 from pywt import wavedec, waverec
 from sklearn.cross_decomposition import CCA
 import emd
+from scipy.stats import kurtosis
