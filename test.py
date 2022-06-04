@@ -28,10 +28,6 @@ notchFilterOutput = filtering.notch(rawEEG,line,fs)
 plots(time,notchFilterOutput,titles=cfg.channelNames,figsize=cfg.figure_size,pltclr=cfg.plot_color)
 
 ###############################################################################
-import pywt
-from pywt import wavedec, waverec
-import numpy as np
-
 original_EEG = notchFilterOutput[:,1]
 
 """
@@ -178,57 +174,73 @@ plt.title('Clean EEG')
 plt.show()
 
 
-"""
--> Detection of Muscular Artifacts 
-    Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
-    and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
--> MA is detected if mad is greater than or equal to 1, hence removal tecnique is applied
-"""
-freqs,psd = signal.welch(original_EEG,fs=500,nperseg=1024)
+def detect_remove_MA(original_EEG,fs):
+    """
+    -   Detection of Muscular Artifacts 
+        -   Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+            and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
+        -   MA is detected if mad is greater than or equal to 1, hence removal tecnique is applied
+    -   Removal of Muscular Artifacts 
+        Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+        and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
+    """
 
-# Extract Power Spectral Density (PSD) for 30-100 Hz and 0-100 Hz
-def find_nearest(X, value):
-    return X[np.unravel_index(np.argmin(np.abs(X - value)), X.shape)]
+    #   Detection of Muscular Artifacts 
+    #   Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+    #   and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
+    #   MA is detected if mad is greater than or equal to 1, hence removal tecnique is applied
+    freqs,psd = signal.welch(original_EEG,fs,nperseg=1024)
 
-nearest_0Hz = find_nearest(freqs,0)
-nearest_30Hz = find_nearest(freqs,30)
-nearest_100Hz = find_nearest(freqs,100)
+    # Extract Power Spectral Density (PSD) for 30-100 Hz and 0-100 Hz
+    def find_nearest(X, value):
+        return X[np.unravel_index(np.argmin(np.abs(X - value)), X.shape)]
 
-idx_0Hz = np.where(freqs==nearest_0Hz)
-idx_30Hz = np.where(freqs==nearest_30Hz)
-idx_100Hz = np.where(freqs==nearest_100Hz)
+    nearest_0Hz = find_nearest(freqs,0)
+    nearest_30Hz = find_nearest(freqs,30)
+    nearest_100Hz = find_nearest(freqs,100)
 
-psd_30_100Hz = psd[idx_30Hz[0][0]:idx_100Hz[0][0]]
-psd_0_100Hz = psd[idx_0Hz[0][0]:idx_100Hz[0][0]]
+    idx_0Hz = np.where(freqs==nearest_0Hz)
+    idx_30Hz = np.where(freqs==nearest_30Hz)
+    idx_100Hz = np.where(freqs==nearest_100Hz)
 
-mad = np.sum(psd_30_100Hz)/np.sum(psd_0_100Hz)
+    psd_30_100Hz = psd[idx_30Hz[0][0]:idx_100Hz[0][0]]
+    psd_0_100Hz = psd[idx_0Hz[0][0]:idx_100Hz[0][0]]
 
-"""
-Removal of Muscular Artifacts 
-Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
-and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
-"""
-from sklearn.cross_decomposition import CCA
-import emd
+    mad = np.sum(psd_30_100Hz)/np.sum(psd_0_100Hz)
+    print('MAD Value:',mad)
 
-# Extract imfs from original EEG
-imfs = emd.sift.sift(original_EEG)
-x_t = imfs
-y_t = x_t-1
-cca = CCA(n_components=len(x_t.T))
-cca.fit(x_t,y_t)
-x_c,y_c= cca.transform(x_t,y_t)
+    if mad > 0:
 
-# Apply threshold to the CCA coefficients
-x_c[(x_c) > mad] = 0
-# Inverse CCA to get the denoised signal
-x_c_old = cca.inverse_transform(x_c)
-# Take mean of the IMFs
-recov_signal = np.mean(x_c_old,axis=1)
+        #   Removal of Muscular Artifacts 
+        #   Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+        #   and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
 
-plt.plot(recov_signal,color='red')
-plt.title('Recovered signal')
-plt.show()
-plt.plot(original_EEG,color='blue')
-plt.title('Original signal')
+        # Extract imfs from original EEG
+        imfs = emd.sift.sift(original_EEG)
+        x_t = imfs
+        y_t = x_t-1
+        cca = CCA(n_components=len(x_t.T))
+        cca.fit(x_t,y_t)
+        x_c,y_c= cca.transform(x_t,y_t)
 
+        # Apply threshold to the CCA coefficients
+        x_c[(x_c) > mad] = 0
+        # Inverse CCA to get the denoised signal
+        x_c_old = cca.inverse_transform(x_c)
+        # Take mean of the IMFs
+        recov_signal = np.mean(x_c_old,axis=1)
+
+        plt.plot(recov_signal,color='red')
+        plt.title('MA Recovered signal')
+        plt.show()
+        plt.plot(original_EEG,color='blue')
+        plt.title('Original signal')
+
+    elif mad <= 0:
+        print('No MA detected')
+        recov_signal = original_EEG
+        print('No muscular artifacts detected')
+        recov_signal = original_EEG
+    return recov_signal
+
+test = detect_remove_MA(original_EEG,fs)
