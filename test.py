@@ -245,25 +245,22 @@ def detect_remove_MA(original_EEG,fs,dispIMG):
 test_1 = detect_remove_OA(original_EEG,True)
 test = detect_remove_MA(original_EEG,fs,True)
 
-fft_samples = fft(original_EEG)
-fft_freq = fftfreq(len(original_EEG), 1 / fs)
-plt.plot(fft_freq, np.abs(fft_samples))
-plt.show()
-f_max = np.amax(np.abs(fft_samples))
 
 # FFT samples split into windowed segments
-samples = rolling_window(fft_samples, window_size=8,freq=8)
+fft_samples = fft(original_EEG)
+win_eeg = rolling_window(original_EEG, window_size=8,freq=8)
+win_fft_samples = rolling_window(fft_samples, window_size=8,freq=8)
 
 # FFT Freq per window
 def fft_freq(samples,sampling_rate):
     return fftfreq(len(samples), 1 / sampling_rate)
 fftFreq = []
-for i in range(len(samples)):
-    fftFreq.append(fft_freq(samples[i],fs))
+for i in range(len(win_fft_samples)):
+    fftFreq.append(fft_freq(win_fft_samples[i],fs))
 fftFreq = np.array(fftFreq)
 
 # Kurtosis per window
-kurtosis_result = stats.kurtosis(samples,axis=1)
+kurtosis_result = stats.kurtosis(win_fft_samples,axis=1)
 
 # Threshold to detect HATL Artifacts (represented with Nan)
 kurtosis_result[kurtosis_result > 7] = 'NaN'
@@ -278,8 +275,29 @@ elif idx_HA.size > 0:
 #   Removal of Harmonics/Transmission Line Artifacts 
 #   Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
 #   and "ARDER: An Automatic EEG Artifacts Detection and Removal System"
-    samplesHA = samples[idx_HA]
-    max_samplesHA = np.amax(np.abs(samplesHA))
+    def removal_HATL(win_eeg,win_fft_samples,idx_HA):
+        samplesHA = win_fft_samples[idx_HA]
+        max_samplesHA = np.amax(np.abs(samplesHA))
+        idx_max_samplesHA = (np.where(np.abs(samplesHA) == max_samplesHA))[0]
+        freqHA = fftFreq[idx_max_samplesHA][0]
+        filtering = filters()
+
+        # Use the extracted HA freq as the line for the notch filter to eliminate the artifact
+        notchFilterOutput = filtering.notch(win_eeg[idx_HA],freqHA,fs)
+        clean_eeg_segment = notchFilterOutput
+        return clean_eeg_segment
+    cleanEEGSegments = []
+    for i in range(len(idx_HA)):
+        cleanEEGSegments.append(removal_HATL(win_eeg,win_fft_samples,idx_HA[i]))
+    cleanEEGSegments = np.array(cleanEEGSegments)
+
+    # Dump notch filtered HA/TL segments inside original EEG
+    s = win_eeg
+    l = idx_HA
+    m = cleanEEGSegments
+    d = dict(zip(l, m))
+    cleanEEG = [d.get(i, j) for i, j in enumerate(s)]
+    cleanEEG = cleanEEG.reshape(len(original_EEG),1)
 
 
 """
