@@ -209,7 +209,7 @@ def detect_remove_MA(original_EEG,fs):
     mad = np.sum(psd_30_100Hz)/np.sum(psd_0_100Hz)
     print('MAD Value:',mad)
 
-    if mad > 0:
+    if float(mad) >= 1:
 
         #   Removal of Muscular Artifacts 
         #   Based on "Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data"
@@ -236,7 +236,7 @@ def detect_remove_MA(original_EEG,fs):
         plt.plot(original_EEG,color='blue')
         plt.title('Original signal')
 
-    elif mad <= 0:
+    if float(mad) < 1:
         print('No MA detected')
         recov_signal = original_EEG
         print('No muscular artifacts detected')
@@ -244,3 +244,4 @@ def detect_remove_MA(original_EEG,fs):
     return recov_signal
 
 test = detect_remove_MA(original_EEG,fs)
+
