@@ -2,10 +2,12 @@ from df_lib import np
 
 # Analysis parameters
 figure_size = (6,16)
-plot_color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-channelNames = ['Fz','Cz','Pz','P07','OZ']
+plot_color = ['#1f77b4', '#ff7f0e', '#2ca02c']
+channelNames = ['Fz','Cz','Pz']
 win_size = 2560
 step_size = 1280
+nfft = 500
+noverlap = 256
 
 # EEG parameters
 epoch = 1000  # ms - total window size
@@ -13,6 +15,7 @@ prestim = 100  # ms - duration  of the baseline (pre-stimulus interval) within t
 lowPass = 30  # Hz - cut-off for the low-pass filter
 highPass = 1  # Hz - cut-off for the high-pass filter
 line = 60  # Hz - line voltage
+lines = [60,120,180,240] # Hz - line voltage
 clip = 75  # uV - clipping threshold
 fs = 500  # todo - move this to the hardware config
 stimTrig = dict(std=[1], dev=[2], con=[4, 7], inc=[5, 8])
