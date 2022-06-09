@@ -338,7 +338,7 @@ class filters:
      filters for EEG data
      filtering order: adaptive filter -> notch filter -> bandpass filter (or lowpass filter, highpass filter)
     """
-    def notch(self,data,line,fs,Q=30):
+    def notch(self,data,lines,fs,Q=30):
         """
            Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of unfiltered EEG data
                        cut     - frequency to be notched (defaults to config)
@@ -348,11 +348,17 @@ class filters:
            NOTES   :   
            Todo    : report testing filter characteristics
         """
-        cut = line
-        w0 = cut/(fs/2)
-        b, a = signal.iirnotch(w0, Q)
-        y = signal.filtfilt(b, a, data, axis=0)
-        return y
+        def initialNotch(data,lines,fs,Q=30):
+            cut = line
+            w0 = cut/(fs/2)
+            b, a = signal.iirnotch(w0, Q)
+            y = signal.filtfilt(b, a, data, axis=0)
+            return y
+        y_1 = initialNotch(data,lines[0],fs,Q)
+        y_2 = initialNotch(y_1,lines[1],fs,Q)
+        y_3 = initialNotch(y_2,lines[2],fs,Q)
+        y_4 = initialNotch(y_3,lines[3],fs,Q)
+        return y_4
 
     def butterBandPass(self,data,lowcut,highcut,fs,order=4):
         """
@@ -1455,6 +1461,30 @@ def ptp_erpscan(peak_val,erp_data,subjs_data):
     acpt_subjs = acpt_subjs[result_2]
     return acpt_erp,acpt_subjs
 
+def spectogramPlot(data,fs,nfft,nOverlap,figsize,subTitles,title):
+    #   Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of filtered EEG data
+    #               fs      - sampling rate of hardware (defaults to config)
+    #               nfft    - number of points to use in each block (defaults to config)
+    #               nOverlap- number of points to overlap between blocks (defaults to config)
+    #               figsize - size of figure (defaults to config)
+    #               titles  - titles for each channel (defaults to config)
+    y = data
+    if len(y.T) % 2 != 0:
+        nrows,ncols=1,int(len(y.T))
+    elif len(y.T) % 2 == 0:
+        nrows,ncols=2,int(len(y.T)/2)
+    fig, axs = plt.subplots(nrows,ncols,sharex=True,sharey=True,figsize=(figsize[0],figsize[1]))
+    fig.suptitle(title)
+    label= ["Power/Frequency"]
+    for i, axs in enumerate(axs.flatten()):
+        d, f, t, im = axs.specgram(data[:,i],NFFT=nfft,Fs=fs,noverlap=nOverlap)
+        axs.set_title(subTitles[i])
+        axs.set_ylim(0,np.amax(f))
+        axs.set_yticks(np.arange(0,np.amax(f),20))
+        axs.set(xlabel='Time (s)', ylabel='Frequency (Hz)')
+        axs.label_outer()
+        axs
+    fig.colorbar(im, ax=axs, shrink=0.9, aspect=10)
 
 # signal quality evaluating functions
 def rolling_window(array, window_size,freq):
