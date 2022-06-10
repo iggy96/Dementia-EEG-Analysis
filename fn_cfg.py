@@ -338,7 +338,7 @@ class filters:
      filters for EEG data
      filtering order: adaptive filter -> notch filter -> bandpass filter (or lowpass filter, highpass filter)
     """
-    def notch(self,data,lines,fs,Q=30):
+    def notch(self,data,line,fs,Q=30):
         """
            Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of unfiltered EEG data
                        cut     - frequency to be notched (defaults to config)
@@ -348,17 +348,11 @@ class filters:
            NOTES   :   
            Todo    : report testing filter characteristics
         """
-        def initialNotch(data,lines,fs,Q=30):
-            cut = line
-            w0 = cut/(fs/2)
-            b, a = signal.iirnotch(w0, Q)
-            y = signal.filtfilt(b, a, data, axis=0)
-            return y
-        y_1 = initialNotch(data,lines[0],fs,Q)
-        y_2 = initialNotch(y_1,lines[1],fs,Q)
-        y_3 = initialNotch(y_2,lines[2],fs,Q)
-        y_4 = initialNotch(y_3,lines[3],fs,Q)
-        return y_4
+        cut = line
+        w0 = cut/(fs/2)
+        b, a = signal.iirnotch(w0, Q)
+        y = signal.filtfilt(b, a, data, axis=0)
+        return y
 
     def butterBandPass(self,data,lowcut,highcut,fs,order=4):
         """
