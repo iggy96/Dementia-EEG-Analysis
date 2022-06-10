@@ -15,7 +15,6 @@ prestim = 100  # ms - duration  of the baseline (pre-stimulus interval) within t
 lowPass = 30  # Hz - cut-off for the low-pass filter
 highPass = 1  # Hz - cut-off for the high-pass filter
 line = 60  # Hz - line voltage
-lines = [60,120,180,240] # Hz - line voltage
 clip = 75  # uV - clipping threshold
 fs = 500  # todo - move this to the hardware config
 stimTrig = dict(std=[1], dev=[2], con=[4, 7], inc=[5, 8])
