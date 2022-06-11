@@ -1483,12 +1483,15 @@ def spectogramPlot(data,fs,nfft,nOverlap,figsize,subTitles,title):
 # signal quality evaluating functions
 def rolling_window(data_array,timing_array,window_size,step_size):
     """
-    Inputs: -   data_array - 1D numpy array (d0 = channels) of data
-            -   timing_array - 1D numpy array (d0 = samples) of timing data
-            -   len(data_array) == len(timing_array)
-            -   window_size - number of samples to use in each window in seconds e.g. 1 is 1 second
-            -   step_size - the step size in seconds e.g.0.5 is 0.5 seconds 
-    Outputs:-   data_windows - 2D numpy array (d0 = windows, d1 = window size) of data
+    Inputs:
+    1. data_array - 1D numpy array (d0 = channels) of data
+    2. timing_array - 1D numpy array (d0 = samples) of timing data
+    3. len(data_array) == len(timing_array)
+    4. window_size - number of samples to use in each window in seconds e.g. 1 is 1 second
+    5. step_size - the step size in seconds e.g.0.5 is 0.5 seconds 
+
+    Outputs:    
+    1. data_windows - 2D numpy array (d0 = windows, d1 = window size) of data
 
     """
     idx_winSize = np.where(timing_array == window_size)[0][0]
