@@ -22,147 +22,113 @@ rawEOG = fileObjects[1]
 rawEEGEOG = fileObjects[2]
 time = fileObjects[3]
 trigOutput = fileObjects[4]
-
 plots(time,rawEEG,titles=cfg.channelNames,figsize=cfg.figure_size,pltclr=cfg.plot_color)
 spectogramPlot(rawEEG,fs,nfft=cfg.nfft,nOverlap=cfg.noverlap,figsize=(16,6),subTitles=cfg.channelNames,title='Music Therapy Group 11')
-
-# PSD plots
-def psdPlot(data,fs):
-    win = 4 * fs
-    freqs, psd = signal.welch(data,fs,nperseg=win)
-    sns.set(font_scale=1.2, style='white')
-    plt.figure(figsize=(8, 4))
-    plt.plot(freqs, psd, color='k', lw=2)
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Power spectral density (V^2 / Hz)')
-    plt.ylim([-0.3,0.3])
-    plt.title("Welch's periodogram")
-    plt.xlim([0,np.amax(freqs)])
-    plt.xticks(np.arange(0,np.amax(freqs)+1,20))
-    sns.despine()
-    pass
-
-psdFz = psdPlot(rawEEG[:,0],fs)
-psdCz = psdPlot(rawEEG[:,1],fs)
-psdPz = psdPlot(rawEEG[:,2],fs)
+filtering = filters()
+notchFilterOutput = filtering.notch(rawEEG,line,fs)
+plots(time,notchFilterOutput,titles=cfg.channelNames,figsize=cfg.figure_size,pltclr=cfg.plot_color)
+spectogramPlot(notchFilterOutput,fs,nfft=cfg.nfft,nOverlap=cfg.noverlap,figsize=(16,6),subTitles=cfg.channelNames,title='Music Therapy Group 11')
 
 
 
-
-
-
-
-"""
-# wavelets decompositions
-original_EEG = rawEEG[:,2]
-wavelet = 'haar'
-coeffs = (wavedec(original_EEG,wavelet,level=5))
-#cA,cD5,cD4,cD3,cD2,cD1 = coeffs
-
-coeffs_approx = coeffs[0]
-coeffs_5l = coeffs[1]
-coeffs_4l = coeffs[2]
-coeffs_3l = coeffs[3]
-coeffs_2l = coeffs[4]
-coeffs_1l = coeffs[5]
-
-coeffs_approx = np.abs(coeffs_approx)
-coeffs_5l = np.abs(coeffs_5l)
-coeffs_4l = np.abs(coeffs_4l)
-coeffs_3l = np.abs(coeffs_3l)
-coeffs_2l = np.abs(coeffs_2l)
-coeffs_1l = np.abs(coeffs_1l)
-
-# Combine all extracted coefficients into the accepted coefficients array
-acc_coeffs = []
-acc_coeffs.append(coeffs_approx)
-acc_coeffs.append(coeffs_5l)
-acc_coeffs.append(coeffs_4l)
-acc_coeffs.append(coeffs_3l)
-acc_coeffs.append(coeffs_2l)
-acc_coeffs.append(coeffs_1l)
-
-# using the accepted coefficients, reconstruct the signal
-# zones_OZ = areas with ocular artifacts
-recov_signal = waverec(acc_coeffs,wavelet)
-recov_signal[abs(recov_signal) > 100] = 0
-zones_OZ = np.where(recov_signal == 0)[0]
-
-# original signal with ocular artifacts
-ocularArtifacts = original_EEG[zones_OZ]
-
-
-plt.plot(recov_signal)
-plt.title('reconstructed signal')
-plt.show()
-
-fig, ax1 = plt.subplots()
-im = ax1.specgram(recov_signal,NFFT=cfg.nfft,Fs=cfg.fs,noverlap=cfg.noverlap)
-ax1.set_title('reconstructed signal')
-plt.show()
-
-plt.plot(original_EEG[100000:150000])
-plt.title('original signal')
-plt.show()
-
-fig, ax1 = plt.subplots()
-ax1.specgram(original_EEG,NFFT=cfg.nfft,Fs=cfg.fs,noverlap=cfg.noverlap)
-ax1.set_title('original signal')
-plt.show()
-"""
 
 # extract clean eeg from original signal
-cleanSegEEG = rawEEG[:,0]
-cleanSegEEG[abs(cleanSegEEG) <= 100] = np.nan
-idx_cleanEEG = np.argwhere(np.isnan(cleanSegEEG))
-idx_group = np.split(idx_cleanEEG, np.cumsum( np.where(idx_cleanEEG[1:] - idx_cleanEEG[:-1] > 1) )+1)
-
 def length(x):
     arr1 = []
     for i in range(len(x)):
         arr1.append(len(x[i]))
     return arr1
-
-len_group = length(idx_group)
-len_max = np.amax(len_group)
-idx_len_max = np.argwhere(len_group == len_max)
-ext_idx = idx_group[idx_len_max[0][0]]
-device = importFile.neurocatch()
-fileObjects = device.init(version,filename,localPath)
-rawEEG = fileObjects[0]
-cleanEEG = rawEEG[:,0][ext_idx]
-
-plt.plot(cleanEEG)
-plt.show()
-
-
-# extract artifacted eeg from original signal
-cleanSegEEG = rawEEG[:,0]
-cleanSegEEG[abs(cleanSegEEG) > 100] = np.nan
-idx_cleanEEG = np.argwhere(np.isnan(cleanSegEEG))
-idx_group = np.split(idx_cleanEEG, np.cumsum( np.where(idx_cleanEEG[1:] - idx_cleanEEG[:-1] > 1) )+1)
-
-def length(x):
-    arr1 = []
-    for i in range(len(x)):
-        arr1.append(len(x[i]))
-    return arr1
-
 def index(x,y):
     arr1 = []
     for i in range(len(y)):
         arr1.append(x[y[i]])
     return arr1
-len_group = np.array(length(idx_group))
-idx_NonZeroGroup = np.where(len_group > 0)[0].ravel()
-idx_artifacts = index(idx_group,idx_NonZeroGroup)
+def median(data):
+    arr = []
+    for i in range(len(data)):
+        arr.append(np.median(data[i]))
+    return arr
+
+origEEG = rawEEG[:,0]
+origEEG[abs(origEEG) <= 50] = np.nan
+idx_cleanEEG = np.argwhere(np.isnan(origEEG))
+idx_groupCleanEEG = np.split(idx_cleanEEG, np.cumsum( np.where(idx_cleanEEG[1:] - idx_cleanEEG[:-1] > 1) )+1)
+idx_NonZeroGroup = np.where(np.array(length(idx_groupCleanEEG)) > 0)[0].ravel()
+idx_groupCleanEEG = index(idx_groupCleanEEG,idx_NonZeroGroup)
+len_group = length(idx_groupCleanEEG)
+len_max = np.amax(len_group)
+idx_len_max = np.argwhere(len_group == len_max)
+ext_idx = idx_groupCleanEEG[idx_len_max[0][0]]
+
+median_idx_groupCleanEEG = median(idx_groupCleanEEG)
+
 device = importFile.neurocatch()
 fileObjects = device.init(version,filename,localPath)
 rawEEG = fileObjects[0]
-segArtEEG = index(rawEEG[:,0],idx_artifacts)
+segment_CleanEEG = rawEEG[:,0][ext_idx]
 
-plt.plot(segArtEEG[2])
+plt.plot(segment_CleanEEG)
 plt.show()
+
+
+#   extract artifacted eeg from original signal
+origEEG = rawEEG[:,0]
+origEEG[abs(origEEG) > 50] = np.nan
+idx_ArtEEG = np.argwhere(np.isnan(origEEG))
+idx_groupArtEEG = np.split(idx_ArtEEG, np.cumsum( np.where(idx_ArtEEG[1:] - idx_ArtEEG[:-1] > 1) )+1)
+len_group = np.array(length(idx_groupArtEEG))
+idx_NonZeroGroup = np.where(len_group > 0)[0].ravel()
+idx_groupArtEEG = index(idx_groupArtEEG,idx_NonZeroGroup)
+
+median_idx_groupArtEEG = median(idx_groupArtEEG)
+
+device = importFile.neurocatch()
+fileObjects = device.init(version,filename,localPath)
+rawEEG = fileObjects[0]
+segment_ArtEEG = index(rawEEG[:,0],idx_groupArtEEG)
+
+plt.plot(segment_ArtEEG[3])
+plt.show()
+
+#   evaluate the reference clean signals to be used
+#   use the indices of clean eeg close to the artifact indices 
+#   to extract the clean eeg signals
+def indexNearestCleanEEG(source,bank):
+    def nearestValue(num,array):
+        return array[abs(array-num)==abs(array-num).min()]
+    arr = []
+    for i in range(len(source)):
+        arr.append(nearestValue(source[i],bank))
+    return arr
+
+
+
+#   wavelets decompositions
+
+original_EEG = rawEEG[:,2]
+def waveletDecomposition(data):
+    wavelet = 'haar'
+    coeffs = (wavedec(data,wavelet,level=3))
+    cA,cD3,cD2,cD1 = coeffs
+    return cA,cD3,cD2,cD1
+
+coeffs_clean = waveletDecomposition(segment_CleanEEG)
+coeffs_art = waveletDecomposition(segment_ArtEEG[0])
+
+norm_cdf = scipy.stats.norm.cdf(x)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
