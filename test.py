@@ -121,8 +121,11 @@ coeffs_std = apply_threshold(coeffs,threshold_std)
 new_signal_global = inv_dwt(coeffs_global,wavelet)
 new_signal_std = inv_dwt(coeffs_std,wavelet)
 
-
-
+plt.plot(time,new_signal_global[0,:])
+plt.show()
+plt.plot(time,new_signal_std[0,:])
+plt.show()
+)
 
 #   Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data
 #   Signal to Artifact Ratio (SAR) is a quantification method to measure the amount of artifact removal 
@@ -133,28 +136,15 @@ new_signal_std = inv_dwt(coeffs_std,wavelet)
 
 def sar(x,y):
     return 10*np.log10((np.std(x))/(np.std(x-y)))
+def mse(x,y):
+    return mean_squared_error(x,y)
 
 sar_global = sar(notchFilterOutput[:,0],new_signal_global[:,0])
 sar_std = sar(notchFilterOutput[:,0],new_signal_std[:,0])
 print("SAR for global threshold: ",sar_global)
 print("SAR for standard deviation threshold: ",sar_std)
 
-
-
-
-"""
-wavelet = 'haar'
-coeffs = swt(notchFilterOutput,wavelet)
-
-threshold_global = global_threshold(notchFilterOutput,coeffs)
-threshold_std = std_threshold(coeffs)
-coeffs_global = apply_threshold(coeffs,threshold_global)
-coeffs_std = apply_threshold(coeffs,threshold_std)
-new_signal_global = inv_swt(coeffs_global,wavelet)
-new_signal_std = inv_swt(coeffs_std,wavelet)
-
-plt.plot(new_signal_global[:,1])
-plt.show()
-plt.plot(new_signal_std[:,1])
-plt.show()
-"""
+mse_global = mse(notchFilterOutput[:,0],new_signal_global[:,0])
+mse_std = mse(notchFilterOutput[:,0],new_signal_std[:,0])
+print("MSE for global threshold: ",mse_global)
+print("MSE for standard deviation threshold: ",mse_std)
