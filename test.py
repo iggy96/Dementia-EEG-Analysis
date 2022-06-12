@@ -10,10 +10,6 @@ version = 1.1
 filename = '0_1_12072018_1206'
 localPath = '/Users/joshuaighalo/Downloads/raw'
 
-
-dispIMG = True
-
-
 device = importFile.neurocatch()
 fileObjects = device.init(version,filename,localPath)
 rawEEG = fileObjects[0]
@@ -29,13 +25,6 @@ plots(time,notchFilterOutput,titles=cfg.channelNames,figsize=cfg.figure_size,plt
 spectogramPlot(notchFilterOutput,fs,nfft=cfg.nfft,nOverlap=cfg.noverlap,figsize=(16,6),subTitles=cfg.channelNames,title='Music Therapy Group 11')
 
 
-
-
-
-
-
-
-
 """
 Probability Mapping Based Artifact Detection and Wavelet Denoising based 
 Artifact Removal from Scalp EEG for BCI Applications
@@ -48,7 +37,7 @@ def dwt(x,wavelet):
     arr = []
     for i in range(len(x.T)):
         arr.append(dwt_chans(x[:,i]))
-    return np.array(arr).T
+    return np.array(arr,dtype=object).T
 
 def swt(x,wavelet):
     def swt_chans(x):
@@ -58,7 +47,6 @@ def swt(x,wavelet):
     for i in range(len(x.T)):
         arr.append(swt_chans(x[:,i]))
     return np.array(arr).T
-
 
 def global_threshold(data,coeffs):
     def coeffs_approx(data,coeffs):
@@ -118,17 +106,10 @@ def inv_dwt(coeffs,wavelet):
     def inverse_dwt(coeffs,wavelet):
         return waverec(coeffs,wavelet)
     arr = []
-    for i in range(len(np.array(coeffs).T)):
-        arr.append(inverse_dwt(list(np.array(coeffs)[:,i]),wavelet))
-    return np.array(arr).T
+    for i in range(len(np.array(coeffs,dtype=object).T)):
+        arr.append(inverse_dwt(list(np.array(coeffs,dtype=object)[:,i]),wavelet))
+    return  (np.array(arr).T)[:-1,:]
 
-def inv_swt(coeffs,wavelet):
-    def inverse_swt(coeffs,wavelet):
-        return pywt.iswt(coeffs,wavelet)
-    arr = []
-    for i in range(len(np.array(coeffs).T)):
-        arr.append(inverse_swt(list(np.array(coeffs)[:,i]),wavelet))
-    return np.array(arr).T
 
 wavelet = 'bior4.4'
 coeffs = dwt(notchFilterOutput,wavelet)
@@ -140,12 +121,28 @@ coeffs_std = apply_threshold(coeffs,threshold_std)
 new_signal_global = inv_dwt(coeffs_global,wavelet)
 new_signal_std = inv_dwt(coeffs_std,wavelet)
 
-plt.plot(new_signal_global[:,1])
-plt.show()
-plt.plot(new_signal_std[:,1])
-plt.show()
 
 
+
+#   Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data
+#   Signal to Artifact Ratio (SAR) is a quantification method to measure the amount of artifact removal 
+#   in a specific signal after processing with an algorithm [40].
+#   SAR is a measure of the amount of artifact removal in a signal.
+#   x = EEG signal containing artifact
+#   y = EEG signal obtained after running an artifact free algorithm
+
+def sar(x,y):
+    return 10*np.log10((np.std(x))/(np.std(x-y)))
+
+sar_global = sar(notchFilterOutput[:,0],new_signal_global[:,0])
+sar_std = sar(notchFilterOutput[:,0],new_signal_std[:,0])
+print("SAR for global threshold: ",sar_global)
+print("SAR for standard deviation threshold: ",sar_std)
+
+
+
+
+"""
 wavelet = 'haar'
 coeffs = swt(notchFilterOutput,wavelet)
 
@@ -160,10 +157,4 @@ plt.plot(new_signal_global[:,1])
 plt.show()
 plt.plot(new_signal_std[:,1])
 plt.show()
-
-
-
-
-
-
-
+"""
