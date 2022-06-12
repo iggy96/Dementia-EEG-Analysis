@@ -101,17 +101,11 @@ def apply_threshold(coeffs,threshold):
         arr_approx.append(apply_threshold_approx(coeffs[:,i],threshold[:,i]))
     for i in range((len(coeffs.T))):
         arr_detail.append(apply_threshold_detail(coeffs[:,i],threshold[:,i]))
-    #arr_approx = np.array(arr_approx).T
-    return arr_approx,arr_detail
+    arr_detail = list(np.array(arr_detail).T)
+    arr_approx = list(zip(arr_approx))
+    return arr_approx,
 
-c = np.array([[1,2,3,4,5,6,7,8,9,10],[1,2,3,4,5,6,7,8,9,10]])
-th = 5
-def threshold_test(c,th):
-    c[0][abs(c[0])>th] = 0
-    c[1][abs(c[1])>th] = 0
-    return c
 
-test = threshold_test(c,th)
 
 
 wavelet = 'haar'
@@ -124,6 +118,10 @@ coeffs_detail_global = (apply_threshold(coeffs,threshold_global))[1]
 coeffs_approx_std = (apply_threshold(coeffs,threshold_std))[0]
 coeffs_detail_std = (apply_threshold(coeffs,threshold_std))[1]
 
+ctest = list(zip(coeffs_approx_global))
+list1 = ctest
+list2 = coeffs_detail_global
+(list2).insert(0,list1)
 
 
 """
