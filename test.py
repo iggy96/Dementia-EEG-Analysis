@@ -102,9 +102,18 @@ def apply_threshold(coeffs,threshold):
     for i in range((len(coeffs.T))):
         arr_detail.append(apply_threshold_detail(coeffs[:,i],threshold[:,i]))
     arr_detail = list(np.array(arr_detail).T)
-    arr_approx = list(zip(arr_approx))
-    return arr_approx,
+    arr_approx = arr_approx
+    coefs = arr_detail
+    (coefs).insert(0,arr_approx)
+    return coefs
 
+def inv_dwt(coeffs,wavelet):
+    def inverse_dwt(coeffs,wavelet):
+        return waverec(coeffs,wavelet)
+    arr = []
+    for i in range(len(np.array(coeffs).T)):
+        arr.append(inverse_dwt(list(np.array(coeffs)[:,i]),wavelet))
+    return np.array(arr).T
 
 
 
@@ -113,15 +122,13 @@ coeffs = dwt(notchFilterOutput,wavelet)
 
 threshold_global = global_threshold(notchFilterOutput,coeffs)
 threshold_std = std_threshold(coeffs)
-coeffs_approx_global = (apply_threshold(coeffs,threshold_global))[0]
-coeffs_detail_global = (apply_threshold(coeffs,threshold_global))[1]
-coeffs_approx_std = (apply_threshold(coeffs,threshold_std))[0]
-coeffs_detail_std = (apply_threshold(coeffs,threshold_std))[1]
+coeffs_global = apply_threshold(coeffs,threshold_global)
+coeffs_std = apply_threshold(coeffs,threshold_std)
+new_signal_global = inv_dwt(coeffs_global,wavelet)
+new_signal_std = inv_dwt(coeffs_std,wavelet)
 
-ctest = list(zip(coeffs_approx_global))
-list1 = ctest
-list2 = coeffs_detail_global
-(list2).insert(0,list1)
+plt.plot(new_signal_global[:,0])
+plt.plot(new_signal_std[:,0])
 
 
 """
