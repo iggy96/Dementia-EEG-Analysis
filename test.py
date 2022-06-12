@@ -43,48 +43,150 @@ spectogramPlot(notchFilterOutput,fs,nfft=cfg.nfft,nOverlap=cfg.noverlap,figsize=
 Probability Mapping Based Artifact Detection and Wavelet Denoising based 
 Artifact Removal from Scalp EEG for BCI Applications
 """
-filtering = filters()
-notchFilterOutput = filtering.notch(rawEEG,line,fs)
-epochs = rolling_window(notchFilterOutput[:,0],time,1,1)
 
-#   Artifact detection
-
-def entropy(data):
+def dwt(x,wavelet):
+    def dwt_chans(x):
+        coeffs = wavedec(x,wavelet,level=10)
+        return coeffs
     arr = []
-    for i in range(len(data)):
-        arr.append(float(stats.entropy(data[i],base=2)))
-    return np.array(arr)
+    for i in range(len(x.T)):
+        arr.append(dwt_chans(x[:,i]))
+    return np.array(arr).T
 
-def kurtosis(data):
+def global_threshold(data,coeffs):
+    def coeffs_approx(data,coeffs):
+        return (np.median(abs(coeffs[0]))/0.6745)*(np.sqrt(2*np.log(len(data))))
+    def coeffs_detail(data,coeffs):
+        return (np.median(abs(coeffs[1]))/0.6745)*(np.sqrt(2*np.log(len(data))))
+    arr_approx = [ ]
+    arr_detail = [ ]
+    for i in range(len(coeffs.T)):
+        arr_approx.append(coeffs_approx(data,coeffs[:,i]))
+        arr_detail.append(coeffs_detail(data,coeffs[:,i]))
+    return np.vstack((arr_approx,arr_detail))
+
+def std_threshold(coeffs):
+    def std_approx(coeffs):
+        return 1.5*np.std(coeffs[0])
+    def std_detail(coeffs):
+        return 1.5*np.std(coeffs[1])
+    arr_approx = [ ]
+    arr_detail = [ ]
+    for i in range(len(coeffs.T)):
+        arr_approx.append(std_approx(coeffs[:,i]))
+        arr_detail.append(std_detail(coeffs[:,i]))
+    return np.vstack((arr_approx,arr_detail))
+
+def apply_threshold(coeffs,threshold):
+    def apply_threshold_approx(coeffs,threshold):
+        coeffs[0][abs(coeffs[0])>threshold[0]] = 0
+        coeffs_approx = coeffs[0]
+        return coeffs_approx
+    def apply_threshold_detail(coeffs,threshold):
+        coeffs = coeffs[1:len(coeffs)]
+        coeffs[0][abs(coeffs[0])>threshold[1]] = 0
+        coeffs[1][abs(coeffs[1])>threshold[1]] = 0
+        coeffs[2][abs(coeffs[2])>threshold[1]] = 0
+        coeffs[3][abs(coeffs[3])>threshold[1]] = 0
+        coeffs[4][abs(coeffs[4])>threshold[1]] = 0
+        coeffs[5][abs(coeffs[5])>threshold[1]] = 0
+        coeffs[6][abs(coeffs[6])>threshold[1]] = 0
+        coeffs[7][abs(coeffs[7])>threshold[1]] = 0
+        coeffs[8][abs(coeffs[8])>threshold[1]] = 0
+        coeffs[9][abs(coeffs[9])>threshold[1]] = 0
+        return coeffs
+    arr_approx = [ ]
+    arr_detail = [ ]
+    for i in range(len(coeffs.T)):
+        arr_approx.append(apply_threshold_approx(coeffs[:,i],threshold[:,i]))
+    for i in range((len(coeffs.T))):
+        arr_detail.append(apply_threshold_detail(coeffs[:,i],threshold[:,i]))
+    #arr_approx = np.array(arr_approx).T
+    return arr_approx,arr_detail
+
+c = np.array([[1,2,3,4,5,6,7,8,9,10],[1,2,3,4,5,6,7,8,9,10]])
+th = 5
+def threshold_test(c,th):
+    c[0][abs(c[0])>th] = 0
+    c[1][abs(c[1])>th] = 0
+    return c
+
+test = threshold_test(c,th)
+
+
+wavelet = 'haar'
+coeffs = dwt(notchFilterOutput,wavelet)
+
+threshold_global = global_threshold(notchFilterOutput,coeffs)
+threshold_std = std_threshold(coeffs)
+coeffs_approx_global = (apply_threshold(coeffs,threshold_global))[0]
+coeffs_detail_global = (apply_threshold(coeffs,threshold_global))[1]
+coeffs_approx_std = (apply_threshold(coeffs,threshold_std))[0]
+coeffs_detail_std = (apply_threshold(coeffs,threshold_std))[1]
+
+
+
+"""
+def dwt(x,wavelet):
+    coeffs = wavedec(x,wavelet,level=10)
+    return coeffs
+
+def global_threshold(data,coeffs):
+    approx = (np.median(abs(coeffs[0]))/0.6745)*(np.sqrt(2*np.log(len(data))))
+    detail = (np.median(abs(coeffs[1]))/0.6745)*(np.sqrt(2*np.log(len(data))))
+    return np.vstack((approx,detail))
+
+def std_threshold(coeffs):
+    approx = 1.5*np.std(coeffs[0])
+    detail =  1.5*np.std(coeffs[1])
+    return np.vstack((approx,detail))
+
+def apply_threshold(coeffs,threshold):
+    def apply_threshold_approx(coeffs,threshold):
+        coeffs[0][abs(coeffs[0])>threshold[0]] = 0
+        coeffs_approx = coeffs[0]
+        return coeffs_approx
+
+    def apply_threshold_detail(coeffs,threshold):
+        coeffs = coeffs[1:len(coeffs)]
+        coeffs[abs(coeffs)>threshold[1]] = 0
+        return coeffs 
+
+    coeffs_detail = []
+    for i in range(len(coeffs)-1):
+        coeffs_detail.append(apply_threshold_detail(coeffs[i],threshold))
+    coeffs_detail = np.array(coeffs_detail)
+    coeffs_approx = apply_threshold_approx(coeffs,threshold)
+    return coeffs_approx,coeffs_detail
+
+def inverse_dwt(coeffs,wavelet):
+    return waverec(coeffs,wavelet)
+
+
+wavelet = 'haar'
+data = notchFilterOutput[:,0]
+
+coeffs = dwt(data,wavelet)
+threshold_global = global_threshold(data,coeffs)
+threshold_std = std_threshold(coeffs)
+coeffs_approx_global = (apply_threshold(coeffs,threshold_global))[0]
+coeffs_detail_global = (apply_threshold(coeffs,threshold_global))[1]
+coeffs_approx_std = (apply_threshold(coeffs,threshold_std))[0]
+coeffs_detail_std = (apply_threshold(coeffs,threshold_std))[1]
+
+
+"""
+
+def swt(x):
+    def swt_epochs(x):
+        coeffs = pywt.swt(x, 'haar', level=2, trim_approx=True)
+        return coeffs
     arr = []
-    for i in range(len(data)):
-        arr.append(scipy.stats.kurtosis(data[i]))
-    return np.array(arr)
+    for i in range(len(x)):
+        arr.append(swt_epochs(x[i]))
+    return arr
 
-def skewness(data):
-    arr = []
-    for i in range(len(data)):
-        arr.append(scipy.stats.skew(data[i]))
-    return np.array(arr)
-
-epochs_entropy = entropy(epochs)
-epochs_kurtosis = kurtosis(epochs)
-epochs_skewness = skewness(epochs)
-
-time_t = np.arange(0, 1, 1/500)
-test_clean = 100 * np.sin(2 * np.pi * 2 * time_t + 0)
-test_noisy = 500 * np.sin(2 * np.pi * 2 * time_t + 0)
-plt.plot(time_t, test_clean, 'b-', label='clean')
-plt.plot(time_t, test_noisy, 'r-', label='noisy')
-plt.legend()
-plt.show()
-
-print("entropy clean: ", entropy(test_clean.reshape(1,len(test_clean))))
-print("entropy noisy: ", entropy(test_noisy.reshape(1,len(test_noisy))))
-
-
-
-
+epochs_swt = swt(epochs)
 
 
 
