@@ -50,6 +50,16 @@ def dwt(x,wavelet):
         arr.append(dwt_chans(x[:,i]))
     return np.array(arr).T
 
+def swt(x,wavelet):
+    def swt_chans(x):
+        coeffs = pywt.swt(x,wavelet,level=10,start_level=1,trim_approx=True)
+        return coeffs
+    arr = []
+    for i in range(len(x.T)):
+        arr.append(swt_chans(x[:,i]))
+    return np.array(arr).T
+
+
 def global_threshold(data,coeffs):
     def coeffs_approx(data,coeffs):
         return (np.median(abs(coeffs[0]))/0.6745)*(np.sqrt(2*np.log(len(data))))
@@ -112,7 +122,13 @@ def inv_dwt(coeffs,wavelet):
         arr.append(inverse_dwt(list(np.array(coeffs)[:,i]),wavelet))
     return np.array(arr).T
 
-
+def inv_swt(coeffs,wavelet):
+    def inverse_swt(coeffs,wavelet):
+        return pywt.iswt(coeffs,wavelet)
+    arr = []
+    for i in range(len(np.array(coeffs).T)):
+        arr.append(inverse_swt(list(np.array(coeffs)[:,i]),wavelet))
+    return np.array(arr).T
 
 wavelet = 'bior4.4'
 coeffs = dwt(notchFilterOutput,wavelet)
@@ -130,7 +146,20 @@ plt.plot(new_signal_std[:,1])
 plt.show()
 
 
+wavelet = 'haar'
+coeffs = swt(notchFilterOutput,wavelet)
 
+threshold_global = global_threshold(notchFilterOutput,coeffs)
+threshold_std = std_threshold(coeffs)
+coeffs_global = apply_threshold(coeffs,threshold_global)
+coeffs_std = apply_threshold(coeffs,threshold_std)
+new_signal_global = inv_swt(coeffs_global,wavelet)
+new_signal_std = inv_swt(coeffs_std,wavelet)
+
+plt.plot(new_signal_global[:,1])
+plt.show()
+plt.plot(new_signal_std[:,1])
+plt.show()
 
 
 
