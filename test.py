@@ -121,11 +121,11 @@ coeffs_std = apply_threshold(coeffs,threshold_std)
 new_signal_global = inv_dwt(coeffs_global,wavelet)
 new_signal_std = inv_dwt(coeffs_std,wavelet)
 
-plt.plot(time,new_signal_global[0,:])
+plt.plot(time,new_signal_global[:,0])
 plt.show()
-plt.plot(time,new_signal_std[0,:])
+plt.plot(time,new_signal_std[:,0])
 plt.show()
-)
+
 
 #   Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data
 #   Signal to Artifact Ratio (SAR) is a quantification method to measure the amount of artifact removal 
