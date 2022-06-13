@@ -39,15 +39,6 @@ def dwt(x,wavelet):
         arr.append(dwt_chans(x[:,i]))
     return np.array(arr,dtype=object).T
 
-def swt(x,wavelet):
-    def swt_chans(x):
-        coeffs = pywt.swt(x,wavelet,level=10,start_level=1,trim_approx=True)
-        return coeffs
-    arr = []
-    for i in range(len(x.T)):
-        arr.append(swt_chans(x[:,i]))
-    return np.array(arr).T
-
 def global_threshold(data,coeffs):
     def coeffs_approx(data,coeffs):
         return (np.median(abs(coeffs[0]))/0.6745)*(np.sqrt(2*np.log(len(data))))
@@ -111,7 +102,7 @@ def inv_dwt(coeffs,wavelet):
     return  (np.array(arr).T)[:-1,:]
 
 
-wavelet = 'bior4.4'
+wavelet = 'sym3'
 coeffs = dwt(notchFilterOutput,wavelet)
 
 threshold_global = global_threshold(notchFilterOutput,coeffs)
@@ -121,10 +112,29 @@ coeffs_std = apply_threshold(coeffs,threshold_std)
 new_signal_global = inv_dwt(coeffs_global,wavelet)
 new_signal_std = inv_dwt(coeffs_std,wavelet)
 
-plt.plot(time,new_signal_global[:,0])
+plt.plot(time,new_signal_global[:,0],color='r',label='Global Threshold')
+plt.plot(time,rawEEG[:,0],color='b',label='Raw EEG')
+plt.legend()
 plt.show()
 plt.plot(time,new_signal_std[:,0])
 plt.show()
+
+
+input_data = notchFilterOutput
+input_data = numpy.vstack([input_data,[0,0,0]])
+level = pywt.swt_max_level(len(input_data[:,0]))
+coeffs_swt = pywt.swt(input_data[:,0],wavelet,level=level,trim_approx=True)
+threshold_global_approx = (np.median(abs(coeffs_swt[0]))/0.6745)*(np.sqrt(2*np.log(len(input_data))))
+threshold_global_detail = (np.median(abs(coeffs_swt[1]))/0.6745)*(np.sqrt(2*np.log(len(input_data))))
+threshold_std_approx = 1.5*np.std(coeffs_swt[0])
+threshold_std_detail = 1.5*np.std(coeffs_swt[1])
+def swt_ApplyThreshold(coeffs,threshold):
+    coeffs[0][abs(coeffs[0])>threshold[0]] = 0
+    coeffs = coeffs[0]
+    return coeffs
+
+coeffs_global_approx = swt_ApplyThreshold(coeffs_swt,threshold_global_approx)
+coeffs_std_approx = swt_ApplyThreshold(coeffs_swt,threshold_std_approx)
 
 
 #   Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data
