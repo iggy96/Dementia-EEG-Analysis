@@ -112,13 +112,37 @@ new_signal_global = inv_dwt(coeffs_global,wavelet)
 new_signal_std = inv_dwt(coeffs_std,wavelet)
 
 plt.plot(time,new_signal_global[:,0],color='r',label='Global Threshold')
-plt.plot(time,rawEEG[:,0],color='b',label='Raw EEG')
 plt.legend()
 plt.show()
-plt.plot(time,new_signal_std[:,0])
+plt.plot(time,new_signal_std[:,0],color='b',label='STD Threshold')
+plt.legend()
 plt.show()
 
+adaptiveFilterOutput = filtering.adaptive(new_signal_global,rawEOG)
+plots(time,adaptiveFilterOutput,titles=cfg.channelNames,figsize=cfg.figure_size,pltclr=cfg.plot_color)
+bandPassFilterOutput = filtering.butterBandPass(adaptiveFilterOutput,lowcut=cfg.highPass,highcut=cfg.lowPass,fs=cfg.fs)
+plots(time,bandPassFilterOutput,titles=cfg.channelNames,figsize=cfg.figure_size,pltclr=cfg.plot_color)
 
+erps = erpExtraction()
+N1P3 = erps.N100P300(trigOutput,bandPassFilterOutput,time,stimTrig=cfg.stimTrig,clip=cfg.clip)
+N4 = erps.N400(trigOutput,bandPassFilterOutput,time,stimTrig=cfg.stimTrig,clip=cfg.clip)
+N1P3_Fz = N1P3[0]
+N1P3_Cz = N1P3[1]
+N1P3_Pz = N1P3[2]
+N4_Fz = N4[0]
+N4_Cz = N4[1]
+N4_Pz = N4[2]
+erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(N1P3_Fz[0]),dtype=object),dtype=object)
+std_N1P3_Fz = N1P3_Fz[0]
+
+plot_ERPs(N1P3_Fz[0],N1P3_Fz[1],erp_latency,'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10)
+plot_ERPs(N1P3_Cz[0],N1P3_Cz[1],erp_latency,'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10)
+plot_ERPs(N1P3_Pz[0],N1P3_Pz[1],erp_latency,'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10)
+plot_ERPs(N4_Fz[0],N4_Fz[1],erp_latency,'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10)
+plot_ERPs(N4_Cz[0],N4_Cz[1],erp_latency,'N4_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10)
+plot_ERPs(N4_Pz[0],N4_Pz[1],erp_latency,'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10)
+
+"""
 #   SWT Wavelet Denoising
 input_data = notchFilterOutput[:,0]
 
@@ -173,6 +197,8 @@ plt.show()
 plt.plot(time,new_signal_std,color='r',label='STD Threshold')
 plt.legend()
 plt.show()
+"""
+
 
 #   Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data
 #   Signal to Artifact Ratio (SAR) is a quantification method to measure the amount of artifact removal 
