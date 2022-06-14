@@ -102,9 +102,8 @@ def inv_dwt(coeffs,wavelet):
     return  (np.array(arr).T)[:-1,:]
 
 
-wavelet = 'sym3'
+wavelet = 'coif5'
 coeffs = dwt(notchFilterOutput,wavelet)
-
 threshold_global = global_threshold(notchFilterOutput,coeffs)
 threshold_std = std_threshold(coeffs)
 coeffs_global = apply_threshold(coeffs,threshold_global)
@@ -120,30 +119,60 @@ plt.plot(time,new_signal_std[:,0])
 plt.show()
 
 
-input_data = notchFilterOutput
-input_data = numpy.vstack([input_data,[0,0,0]])
-level = pywt.swt_max_level(len(input_data[:,0]))
-coeffs_swt = pywt.swt(input_data[:,0],wavelet,level=level,trim_approx=True)
+#   SWT Wavelet Denoising
+input_data = notchFilterOutput[:,0]
+
+def length_check_1(input_data):
+    if len(input_data)%2 == 1:
+        input_data = np.pad(input_data, (0, 1), 'constant')
+    else:
+        input_data = input_data
+    return input_data
+
+input_data = length_check_1(input_data)
+coeffs_swt = pywt.swt(input_data,wavelet,level=1,trim_approx=True)
 threshold_global_approx = (np.median(abs(coeffs_swt[0]))/0.6745)*(np.sqrt(2*np.log(len(input_data))))
 threshold_global_detail = (np.median(abs(coeffs_swt[1]))/0.6745)*(np.sqrt(2*np.log(len(input_data))))
 threshold_std_approx = 1.5*np.std(coeffs_swt[0])
 threshold_std_detail = 1.5*np.std(coeffs_swt[1])
-def swt_ApplyThreshold(coeffs,threshold):
-    def swt_ApplyThreshold_approx(coeffs,threshold):
-        coeffs[0][abs(coeffs[0])>threshold[0]] = 0
-        coeffs = coeffs[0]
-        return coeffs
-    def swt_ApplyThreshold_detail(coeffs,threshold):
-        coeffs = coeffs[1:len(coeffs)]
-        coeffs[abs(coeffs)>threshold[1]] = 0
-        return coeffs
-    arr_approx = [ ]
-    arr_detail = [ ]
-    
 
-coeffs_global_approx = swt_ApplyThreshold(coeffs_swt,threshold_global_approx)
-coeffs_std_approx = swt_ApplyThreshold(coeffs_swt,threshold_std_approx)
+def swt_ApplyThreshold(coeffs,threshold_approx,threshold_detail):
+    def approx_ApplyThreshold(coeffs,threshold_approx):
+        coeff_1 = coeffs[0]
+        coeff_1[abs(coeff_1)>threshold_approx] = 0
+        return list(coeff_1)
+    def detail_ApplyThreshold(coeffs,threshold_detail):
+        coeff_1 = coeffs[1]
+        coeff_1[abs(coeff_1)>threshold_detail] = 0
+        return list(coeff_1)
+    approx = approx_ApplyThreshold(coeffs,threshold_approx)
+    detail = detail_ApplyThreshold(coeffs,threshold_detail)
+    coefs = [approx,detail]
+    return coefs
 
+coeffs_global = swt_ApplyThreshold(coeffs_swt,threshold_global_approx,threshold_global_detail)
+coeffs_std = swt_ApplyThreshold(coeffs_swt,threshold_std_approx,threshold_std_detail)
+new_signal_global = pywt.iswt(np.array(coeffs_global),wavelet)
+new_signal_global = new_signal_global.reshape(len(new_signal_global),1)
+new_signal_std = pywt.iswt(np.array(coeffs_std),wavelet)
+new_signal_std = new_signal_std.reshape(len(new_signal_std),1)
+
+def length_check_2(signal):
+    if len(signal) % 2 == 0:
+        signal = np.delete(signal,-1)
+    else:
+        pass
+    return signal
+
+new_signal_global = length_check_2(new_signal_global)
+new_signal_std = length_check_2(new_signal_std)
+
+plt.plot(time,new_signal_global,color='r',label='Global Threshold')
+plt.legend()
+plt.show()
+plt.plot(time,new_signal_std,color='r',label='STD Threshold')
+plt.legend()
+plt.show()
 
 #   Comparative Study of Wavelet-Based Unsupervised Ocular Artifact Removal Techniques for Single-Channel EEG Data
 #   Signal to Artifact Ratio (SAR) is a quantification method to measure the amount of artifact removal 
