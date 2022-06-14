@@ -129,9 +129,17 @@ threshold_global_detail = (np.median(abs(coeffs_swt[1]))/0.6745)*(np.sqrt(2*np.l
 threshold_std_approx = 1.5*np.std(coeffs_swt[0])
 threshold_std_detail = 1.5*np.std(coeffs_swt[1])
 def swt_ApplyThreshold(coeffs,threshold):
-    coeffs[0][abs(coeffs[0])>threshold[0]] = 0
-    coeffs = coeffs[0]
-    return coeffs
+    def swt_ApplyThreshold_approx(coeffs,threshold):
+        coeffs[0][abs(coeffs[0])>threshold[0]] = 0
+        coeffs = coeffs[0]
+        return coeffs
+    def swt_ApplyThreshold_detail(coeffs,threshold):
+        coeffs = coeffs[1:len(coeffs)]
+        coeffs[abs(coeffs)>threshold[1]] = 0
+        return coeffs
+    arr_approx = [ ]
+    arr_detail = [ ]
+    
 
 coeffs_global_approx = swt_ApplyThreshold(coeffs_swt,threshold_global_approx)
 coeffs_std_approx = swt_ApplyThreshold(coeffs_swt,threshold_std_approx)
