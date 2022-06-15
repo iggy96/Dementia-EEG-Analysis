@@ -1473,8 +1473,8 @@ def spectogramPlot(data,fs,nfft,nOverlap,figsize,subTitles,title):
     for i, axs in enumerate(axs.flatten()):
         d, f, t, im = axs.specgram(data[:,i],NFFT=nfft,Fs=fs,noverlap=nOverlap)
         axs.set_title(subTitles[i])
-        axs.set_ylim(0,np.amax(f))
-        axs.set_yticks(np.arange(0,np.amax(f),20))
+        axs.set_ylim(0,80)
+        #axs.set_yticks(np.arange(0,80,20))
         axs.set(xlabel='Time (s)', ylabel='Frequency (Hz)')
         axs.label_outer()
         axs
