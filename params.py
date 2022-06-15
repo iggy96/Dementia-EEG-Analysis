@@ -4,6 +4,8 @@ from df_lib import np
 figure_size = (6,16)
 plot_color = ['#1f77b4', '#ff7f0e', '#2ca02c']
 channelNames = ['Fz','Cz','Pz']
+channelNames_1 = ['Fz','Cz','Pz','EOG 1','EOG 2']
+plot_color_1 = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
 win_size = 2560
 step_size = 1280
 nfft = 500
