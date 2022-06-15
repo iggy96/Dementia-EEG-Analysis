@@ -2403,3 +2403,21 @@ def plots(x,y,titles,figsize,pltclr):
 
 def sar(x,y):
     return 10*np.log10((np.std(x))/(np.std(x-y)))
+
+def psdPlots(data,fs):
+# Define window length (4 seconds)
+    win = 4 * fs
+    freqs,psd = signal.welch(data,fs,nperseg=win)
+
+    # Plot the power spectrum
+    sns.set(font_scale=1.2, style='white')
+    plt.figure(figsize=(8, 4))
+    plt.plot(freqs, psd, color='k', lw=2)
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power spectral density (V^2 / Hz)')
+    plt.ylim([0,0.3])
+    plt.xlim([0,200])
+    plt.xticks(np.arange(0,200,10))
+    plt.title("Welch's periodogram")
+    #plt.xlim([0, freqs.max()])
+    sns.despine()
