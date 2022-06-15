@@ -2400,3 +2400,6 @@ def plots(x,y,titles,figsize,pltclr):
         axs.set(xlabel='Time (s)', ylabel='Amplitude (uV)')
         axs.tick_params(axis='both', which='major', labelsize=8)
         axs.label_outer()
+
+def sar(x,y):
+    return 10*np.log10((np.std(x))/(np.std(x-y)))
