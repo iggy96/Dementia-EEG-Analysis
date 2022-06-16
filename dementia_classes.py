@@ -104,4 +104,36 @@ tp_SEV = np.array([remove_cruft(s) for s in scans_sev_dementia])
 
 
 #   extract baseline, 4-months and 8-months for the no dementia scans
-idx_B_ND = 
+idx_ND_B = np.where(np.isin(tp_ND, tp_baseline))[0]
+idx_ND_4 = np.where(np.isin(tp_ND, tp_4months))[0]
+idx_ND_8 = np.where(np.isin(tp_ND, tp_8months))[0]
+scans_ND_B = scans_no_dementia[idx_ND_B]
+scans_ND_4 = scans_no_dementia[idx_ND_4]
+scans_ND_8 = scans_no_dementia[idx_ND_8]
+
+#   extract baseline, 4-months and 8-months for the mild dementia scans
+idx_MILD_B = np.where(np.isin(tp_MILD, tp_baseline))[0]
+idx_MILD_4 = np.where(np.isin(tp_MILD, tp_4months))[0]
+idx_MILD_8 = np.where(np.isin(tp_MILD, tp_8months))[0]
+scans_MILD_B = scans_mild_dementia[idx_MILD_B]
+scans_MILD_4 = scans_mild_dementia[idx_MILD_4]
+scans_MILD_8 = scans_mild_dementia[idx_MILD_8]
+
+#   extract baseline, 4-months and 8-months for the moderate dementia scans
+idx_MOD_B = np.where(np.isin(tp_MOD, tp_baseline))[0]
+idx_MOD_4 = np.where(np.isin(tp_MOD, tp_4months))[0]
+idx_MOD_8 = np.where(np.isin(tp_MOD, tp_8months))[0]
+scans_MOD_B = scans_mod_dementia[idx_MOD_B]
+scans_MOD_4 = scans_mod_dementia[idx_MOD_4]
+scans_MOD_8 = scans_mod_dementia[idx_MOD_8]
+
+#   extract baseline, 4-months and 8-months for the severe dementia scans
+idx_SEVD_B = np.where(np.isin(tp_SEV, tp_baseline))[0]
+idx_SEVD_4 = np.where(np.isin(tp_SEV, tp_4months))[0]
+idx_SEVD_8 = np.where(np.isin(tp_SEV, tp_8months))[0]
+scans_SEVD_B = scans_sev_dementia[idx_SEVD_B]
+scans_SEVD_4 = scans_sev_dementia[idx_SEVD_4]
+scans_SEVD_8 = scans_sev_dementia[idx_SEVD_8]
+
+
+
