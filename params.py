@@ -14,8 +14,8 @@ noverlap = 256
 # EEG parameters
 epoch = 1000  # ms - total window size
 prestim = 100  # ms - duration  of the baseline (pre-stimulus interval) within the epoch
-lowPass = 20  # Hz - cut-off for the low-pass filter
-highPass = 0.3  # Hz - cut-off for the high-pass filter
+lowPass = 10  # Hz - cut-off for the low-pass filter
+highPass = 0.1  # Hz - cut-off for the high-pass filter
 line = 120  # Hz - line voltage
 clip = 75  # uV - clipping threshold
 fs = 500  # todo - move this to the hardware config
