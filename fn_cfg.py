@@ -1455,7 +1455,7 @@ def ptp_erpscan(peak_val,erp_data,subjs_data):
     acpt_subjs = acpt_subjs[result_2]
     return acpt_erp,acpt_subjs
 
-def spectogramPlot(data,fs,nfft,nOverlap,figsize,subTitles,title):
+def spectogramPlot(data,fs,nfft,y_max,nOverlap,figsize,subTitles,title):
     #   Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of filtered EEG data
     #               fs      - sampling rate of hardware (defaults to config)
     #               nfft    - number of points to use in each block (defaults to config)
@@ -1473,7 +1473,7 @@ def spectogramPlot(data,fs,nfft,nOverlap,figsize,subTitles,title):
     for i, axs in enumerate(axs.flatten()):
         d, f, t, im = axs.specgram(data[:,i],NFFT=nfft,Fs=fs,noverlap=nOverlap)
         axs.set_title(subTitles[i])
-        axs.set_ylim(0,80)
+        axs.set_ylim(0,y_max)
         #axs.set_yticks(np.arange(0,80,20))
         axs.set(xlabel='Time (s)', ylabel='Frequency (Hz)')
         axs.label_outer()
