@@ -16,7 +16,7 @@ epoch = 1000  # ms - total window size
 prestim = 100  # ms - duration  of the baseline (pre-stimulus interval) within the epoch
 lowPass = 10  # Hz - cut-off for the low-pass filter
 highPass = 0.1  # Hz - cut-off for the high-pass filter
-line = 120  # Hz - line voltage
+line = 60  # Hz - line voltage
 clip = 75  # uV - clipping threshold
 fs = 500  # todo - move this to the hardware config
 stimTrig = dict(std=[1], dev=[2], con=[4, 7], inc=[5, 8])
