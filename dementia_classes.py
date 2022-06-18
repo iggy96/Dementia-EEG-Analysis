@@ -271,133 +271,133 @@ def test(data_class, dataScans_TP,dataScans,scans):
     return scansClass_TP 
 
 # no dementia (ND) scans at baseline
-cf_scansND_B = []
+scansND_B = []
 for i in range(len(data_ND)):
-    cf_scansND_B.append(test(data_ND[i], dataScans_B,dataScans,scans))
+    scansND_B.append(test(data_ND[i], dataScans_B,dataScans,scans))
+#print("scansND_B: ", scansND_B)
+#idx_ND_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_ND))[0]
+#init_sname = dataScans_B[idx_ND_B]
+#idx_scansND_B = np.where(np.isin(dataScans, init_sname))[0]
+#scansND_B = scans[idx_scansND_B]
 
-idx_ND_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_ND))[0]
-init_sname = dataScans_B[idx_ND_B]
-idx_scansND_B = np.where(np.isin(dataScans, init_sname))[0]
-scansND_B = scans[idx_scansND_B]
-print("scansND_B: ", scansND_B)
 
 # no dementia (ND) scans at 4 months
-cf_scansND_4 = []
+scansND_4 = []
 for i in range(len(data_ND)):
-    cf_scansND_4.append(test(data_ND[i], dataScans_4,dataScans,scans))
+    scansND_4.append(test(data_ND[i], dataScans_4,dataScans,scans))
+#print("scansND_4: ", scansND_4)
+#idx_ND_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_ND))[0]
+#init_sname = dataScans_4[idx_ND_4]
+#idx_scansND_4 = np.where(np.isin(dataScans, init_sname))[0]
+#scansND_4 = scans[idx_scansND_4]
 
-idx_ND_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_ND))[0]
-init_sname = dataScans_4[idx_ND_4]
-idx_scansND_4 = np.where(np.isin(dataScans, init_sname))[0]
-scansND_4 = scans[idx_scansND_4]
-print("scansND_4: ", scansND_4)
 
 # no dementia (ND) scans at 8 months
-cf_scansND_8 = []
+scansND_8 = []
 for i in range(len(data_ND)):
-    cf_scansND_8.append(test(data_ND[i], dataScans_8,dataScans,scans))
+    scansND_8.append(test(data_ND[i], dataScans_8,dataScans,scans))
+#print("scansND_8: ", scansND_8)
+#idx_ND_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_ND))[0]
+#init_sname = dataScans_8[idx_ND_8]
+#idx_scansND_8 = np.where(np.isin(dataScans, init_sname))[0]
+#scansND_8 = scans[idx_scansND_8]
 
-idx_ND_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_ND))[0]
-init_sname = dataScans_8[idx_ND_8]
-idx_scansND_8 = np.where(np.isin(dataScans, init_sname))[0]
-scansND_8 = scans[idx_scansND_8]
-print("scansND_8: ", scansND_8)
 
 #  scans of mild dementia across timepoints
 
 # mild dementia (MILD) scans at baseline
-cf_scansMILD_B = []
+scansMILD_B = []
 for i in range(len(data_MILD)):
-    cf_scansMILD_B.append(test(data_MILD[i], dataScans_B,dataScans,scans))
+    scansMILD_B.append(test(data_MILD[i], dataScans_B,dataScans,scans))
 
-idx_MILD_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_MILD))[0]
-init_sname = dataScans_B[idx_MILD_B]
-idx_scansMILD_B = np.where(np.isin(dataScans, init_sname))[0]
-scansMILD_B = scans[idx_scansMILD_B]
+#idx_MILD_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_MILD))[0]
+#init_sname = dataScans_B[idx_MILD_B]
+#idx_scansMILD_B = np.where(np.isin(dataScans, init_sname))[0]
+#scansMILD_B = scans[idx_scansMILD_B]
 
 # mild dementia (MILD) scans at 4 months
-cf_scansMILD_4 = []
+scansMILD_4 = []
 for i in range(len(data_MILD)):
-    cf_scansMILD_4.append(test(data_MILD[i], dataScans_4,dataScans,scans))
+    scansMILD_4.append(test(data_MILD[i], dataScans_4,dataScans,scans))
 
-idx_MILD_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_MILD))[0]
-init_sname = dataScans_4[idx_MILD_4]
-idx_scansMILD_4 = np.where(np.isin(dataScans, init_sname))[0]
-scansMILD_4 = scans[idx_scansMILD_4]
+#idx_MILD_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_MILD))[0]
+#init_sname = dataScans_4[idx_MILD_4]
+#idx_scansMILD_4 = np.where(np.isin(dataScans, init_sname))[0]
+#scansMILD_4 = scans[idx_scansMILD_4]
 
 # mild dementia (MILD) scans at 8 months
-cf_scansMILD_8 = []
+scansMILD_8 = []
 for i in range(len(data_MILD)):
-    cf_scansMILD_8.append(test(data_MILD[i], dataScans_8,dataScans,scans))
+    scansMILD_8.append(test(data_MILD[i], dataScans_8,dataScans,scans))
 
-idx_MILD_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_MILD))[0]
-init_sname = dataScans_8[idx_MILD_8]
-idx_scansMILD_8 = np.where(np.isin(dataScans, init_sname))[0]
-scansMILD_8 = scans[idx_scansMILD_8]
+#idx_MILD_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_MILD))[0]
+#init_sname = dataScans_8[idx_MILD_8]
+#idx_scansMILD_8 = np.where(np.isin(dataScans, init_sname))[0]
+#scansMILD_8 = scans[idx_scansMILD_8]
 
 #  scans of moderate dementia across timepoints
 
 # moderate dementia (MOD) scans at baseline
-cf_scansMOD_B = []
+scansMOD_B = []
 for i in range(len(data_MOD)):
-    cf_scansMOD_B.append(test(data_MOD[i], dataScans_B,dataScans,scans))
+    scansMOD_B.append(test(data_MOD[i], dataScans_B,dataScans,scans))
 
-idx_MOD_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_MOD))[0]
-init_sname = dataScans_B[idx_MOD_B]
-idx_scansMOD_B = np.where(np.isin(dataScans, init_sname))[0]
-scansMOD_B = scans[idx_scansMOD_B]
+#idx_MOD_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_MOD))[0]
+#init_sname = dataScans_B[idx_MOD_B]
+#idx_scansMOD_B = np.where(np.isin(dataScans, init_sname))[0]
+#scansMOD_B = scans[idx_scansMOD_B]
 
 # moderate dementia (MOD) scans at 4 months
-cf_scansMOD_4 = []
+scansMOD_4 = []
 for i in range(len(data_MOD)):
-    cf_scansMOD_4.append(test(data_MOD[i], dataScans_4,dataScans,scans))
+    scansMOD_4.append(test(data_MOD[i], dataScans_4,dataScans,scans))
 
-idx_MOD_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_MOD))[0]
-init_sname = dataScans_4[idx_MOD_4]
-idx_scansMOD_4 = np.where(np.isin(dataScans, init_sname))[0]
-scansMOD_4 = scans[idx_scansMOD_4]
+#idx_MOD_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_MOD))[0]
+#init_sname = dataScans_4[idx_MOD_4]
+#idx_scansMOD_4 = np.where(np.isin(dataScans, init_sname))[0]
+#scansMOD_4 = scans[idx_scansMOD_4]
 
 # moderate dementia (MOD) scans at 8 months
-cf_scansMOD_8 = []
+scansMOD_8 = []
 for i in range(len(data_MOD)):
-    cf_scansMOD_8.append(test(data_MOD[i], dataScans_8,dataScans,scans))
+    scansMOD_8.append(test(data_MOD[i], dataScans_8,dataScans,scans))
 
-idx_MOD_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_MOD))[0]
-init_sname = dataScans_8[idx_MOD_8]
-idx_scansMOD_8 = np.where(np.isin(dataScans, init_sname))[0]
-scansMOD_8 = scans[idx_scansMOD_8]
+#idx_MOD_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_MOD))[0]
+#init_sname = dataScans_8[idx_MOD_8]
+#idx_scansMOD_8 = np.where(np.isin(dataScans, init_sname))[0]
+#scansMOD_8 = scans[idx_scansMOD_8]
 
 #  scans of severe dementia across timepoints
 
 # severe dementia (SEVD) scans at baseline
-cf_scansSEVD_B = []
+scansSEVD_B = []
 for i in range(len(data_SEVD)):
-    cf_scansSEVD_B.append(test(data_SEVD[i], dataScans_B,dataScans,scans))
+    scansSEVD_B.append(test(data_SEVD[i], dataScans_B,dataScans,scans))
 
-idx_SEVD_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_SEVD))[0]
-init_sname = dataScans_B[idx_SEVD_B]
-idx_scansSEVD_B = np.where(np.isin(dataScans, init_sname))[0]
-scansSEVD_B = scans[idx_scansSEVD_B]
+#idx_SEVD_B = np.where(np.isin(([x[:-8] for x in dataScans_B]), data_SEVD))[0]
+#init_sname = dataScans_B[idx_SEVD_B]
+#idx_scansSEVD_B = np.where(np.isin(dataScans, init_sname))[0]
+#scansSEVD_B = scans[idx_scansSEVD_B]
 
 # severe dementia (SEVD) scans at 4 months
-cf_scansSEVD_4 = []
+scansSEVD_4 = []
 for i in range(len(data_SEVD)):
-    cf_scansSEVD_4.append(test(data_SEVD[i], dataScans_4,dataScans,scans))
+    scansSEVD_4.append(test(data_SEVD[i], dataScans_4,dataScans,scans))
 
-idx_SEVD_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_SEVD))[0]
-init_sname = dataScans_4[idx_SEVD_4]
-idx_scansSEVD_4 = np.where(np.isin(dataScans, init_sname))[0]
-scansSEVD_4 = scans[idx_scansSEVD_4]
+#idx_SEVD_4 = np.where(np.isin(([x[:-8] for x in dataScans_4]), data_SEVD))[0]
+#init_sname = dataScans_4[idx_SEVD_4]
+#idx_scansSEVD_4 = np.where(np.isin(dataScans, init_sname))[0]
+#scansSEVD_4 = scans[idx_scansSEVD_4]
 
 # severe dementia (SEVD) scans at 8 months
-cf_scansSEVD_8 = []
+scansSEVD_8 = []
 for i in range(len(data_SEVD)):
-    cf_scansSEVD_8.append(test(data_SEVD[i], dataScans_8,dataScans,scans))
+    scansSEVD_8.append(test(data_SEVD[i], dataScans_8,dataScans,scans))
     
-idx_SEVD_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_SEVD))[0]
-init_sname = dataScans_8[idx_SEVD_8]
-idx_scansSEVD_8 = np.where(np.isin(dataScans, init_sname))[0]
-scansSEVD_8 = scans[idx_scansSEVD_8]
+#idx_SEVD_8 = np.where(np.isin(([x[:-8] for x in dataScans_8]), data_SEVD))[0]
+#init_sname = dataScans_8[idx_SEVD_8]
+#idx_scansSEVD_8 = np.where(np.isin(dataScans, init_sname))[0]
+#scansSEVD_8 = scans[idx_scansSEVD_8]
 
 
 
