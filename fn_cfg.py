@@ -153,12 +153,12 @@ class importFile:
 
                 metadata = open(file_path)
                 metadata = json.load(metadata)
-            if dispIMG == True:
-                for i in metadata:
-                    print(i)
-                print(metadata['version'])
-            else:
-                pass
+                if dispIMG == True:
+                    for i in metadata:
+                        print(i)
+                    print(metadata['version'])
+                else:
+                    pass
                 metadata_chans = metadata['channels']
                 metadata_imp = metadata['impedances']
                 # p3,p4,p07,p08,oz
@@ -304,7 +304,7 @@ class importFile:
                 rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_ntrig]]  
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_ntrig]]
-                rawEEGEOG = np.concatenate((rawEEG),axis=1)
+                rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
                 if dispIMG == True:
                     print('data contains Fz, Cz, Pz & no EOG channels')
                 else:
