@@ -450,6 +450,19 @@ def peaktopeak(data):
     p2p = a-b
     return p2p
 
+def quality_p2p(data):
+    # used for artifact rejection
+    def p2p(data):
+        a = np.amax(data,axis=0)
+        b = np.amin(data,axis=0)
+        p2p = a-b
+        return p2p
+    p2p_array = []
+    for i in range(len(data.T)):
+        p2p_array.append(p2p(data[:,i]))
+    p2p_array = np.array(p2p_array)
+    return p2p_array
+
 class erpExtraction:
     """
       Inputs: trigger data produced from rising_edge()
@@ -458,13 +471,13 @@ class erpExtraction:
       Outputs: ERP data (samples, channels) for N100,P300 and N400
       Notes:   - The trigger channel is assumed to be the last channel in the data matrix
     """
-    def N100P300(self,trigger_channel,eegData,period,stimTrig,clip):
+    def N100P300(self,trigger_channel,eegData,period,stimTrig,clip,dispIMG):
         """
           Inputs: trigger channels, bandpass filtered data for all channels, time period,
                   stimTrig, clip value
         """
-        trigger_channel,channel_data,period,stimTrig,clip = trigger_channel,eegData,period,stimTrig,clip
-        def algorithm(trigger_channel,channel_data,period,stimTrig,clip):
+        trigger_channel,channel_data,period,stimTrig,clip,dispIMG = trigger_channel,eegData,period,stimTrig,clip,dispIMG
+        def algorithm(trigger_channel,channel_data,period,stimTrig,clip,dispIMG):
             trigger_data = rising_edge(trigger_channel)
             trigCol = trigger_data
             avg = channel_data 
@@ -474,7 +487,10 @@ class erpExtraction:
             std = std[0]
             
             no_ones = np.count_nonzero(trigCol==1)
-            print("number of std tone event codes:",no_ones)
+            if dispIMG == True:
+                print("number of std tone event codes:",no_ones)
+            else:
+                pass
             
             result = np.where(trigCol == std)
             idx_10 = result[0]
@@ -631,10 +647,15 @@ class erpExtraction:
             ar_std = np.delete(bc_std,(row),axis = 0)
             dif = ((len(bc_std)-len(ar_std))/len(bc_std))*100
             if len(ar_std) == len(bc_std):
-                print("notice! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
+                if dispIMG == True:
+                    print("notice! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
             elif len(ar_std) < len(bc_std):
-                print("callback! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
-            
+                if dispIMG == True:
+                    print("callback! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
                 
             # averaging
             avg_std = np.mean(ar_std,axis=0)
@@ -645,7 +666,10 @@ class erpExtraction:
             dev = dev[0]
             
             no_twos = np.count_nonzero(trigCol==2)
-            print("number of dev tone event codes:",no_twos)
+            if dispIMG == True:
+                print("number of dev tone event codes:",no_twos)
+            else:
+                pass
             
             result = np.where(trigCol == dev)
             idx_20 = result[0]
@@ -800,9 +824,15 @@ class erpExtraction:
             ar_dev = np.delete(bc_dev,(row),axis = 0)
             dif = ((len(bc_dev)-len(ar_dev))/len(bc_dev))*100
             if len(ar_dev) == len(bc_dev):
-                print("notice! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
+                if dispIMG == True:
+                    print("notice! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
             elif len(ar_dev) < len(bc_dev):
-                print("callback! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
+                if dispIMG == True:
+                    print("callback! epochs lost for dev tone:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
             
             # averaging
             avg_dev = np.mean(ar_dev,axis=0)
@@ -810,18 +840,18 @@ class erpExtraction:
         # algorithm function returns avg_std,avg_dev,ar_std,ar_dev
         out_final = []
         for i in range(len(channel_data.T)):
-            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip))
+            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
         out_final = np.asarray(out_final).T
         out_final = out_final.transpose()
         return out_final
 
-    def N400(self,trigger_channel,eegData,period,stimTrig,clip):
+    def N400(self,trigger_channel,eegData,period,stimTrig,clip,dispIMG):
         """
           Inputs: trigger channels, bandpass filtered data for all channels, time period,
                   stimTrig, clip value
         """
-        trigger_channel,channel_data,period,stimTrig,clip = trigger_channel,eegData,period,stimTrig,clip
-        def algorithm(trigger_channel,channel_data,period,stimTrig,clip):
+        trigger_channel,channel_data,period,stimTrig,clip,dispIMG = trigger_channel,eegData,period,stimTrig,clip,dispIMG
+        def algorithm(trigger_channel,channel_data,period,stimTrig,clip,dispIMG):
             trigger_data = rising_edge(trigger_channel)
             trigCol = trigger_data
             avg = channel_data 
@@ -834,7 +864,10 @@ class erpExtraction:
             no_fours = np.count_nonzero(trigCol==4)
             no_sevens = np.count_nonzero(trigCol==7)
             no_cons = no_fours + no_sevens
-            print("number of con word event codes:",no_cons)
+            if dispIMG == True:
+                print("number of con word event codes:",no_cons)
+            else:
+                pass
             
             result = np.where(trigCol == con[0])
             idx_30i = result[0]
@@ -999,10 +1032,16 @@ class erpExtraction:
             ar_con = np.delete(bc_con,(row),axis = 0)
             dif = ((len(bc_con)-len(ar_con))/len(bc_con))*100
             if len(ar_con) == len(bc_con):
-                print("notice! epochs lost for con word:","{:.2%}".format((int(dif))/100))
+                if dispIMG == True:
+                    print("notice! epochs lost for con word:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
             elif len(ar_con) < len(bc_con):
-                print("callback! epochs lost for con word:","{:.2%}".format((int(dif))/100))
-            
+                if dispIMG == True:
+                    print("callback! epochs lost for con word:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
+
             # averaging
             avg_con = np.mean(ar_con,axis=0)
             
@@ -1016,7 +1055,10 @@ class erpExtraction:
             no_fives = np.count_nonzero(trigCol==5)
             no_eights = np.count_nonzero(trigCol==8)
             no_incs = no_fives + no_eights
-            print("number of inc word event codes:",no_incs)
+            if dispIMG == True:
+                print("number of inc word event codes:",no_incs)
+            else:
+                pass
             
             result = np.where(trigCol == inc[0])
             idx_40i = result[0]
@@ -1181,9 +1223,15 @@ class erpExtraction:
             ar_inc = np.delete(bc_inc,(row),axis = 0)
             dif = ((len(bc_inc)-len(ar_inc))/len(bc_inc))*100
             if len(ar_inc) == len(bc_inc):
-                print("notice! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
+                if dispIMG == True:
+                    print("notice! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
             elif len(ar_inc) < len(bc_inc):
-                print("callback! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
+                if dispIMG == True:
+                    print("callback! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
+                else:
+                    pass
             # averaging
             avg_inc = np.mean(ar_inc,axis=0)
             return avg_con,avg_inc,ar_con,ar_inc
@@ -1191,7 +1239,7 @@ class erpExtraction:
         # algorithm function returns avg_con,avg_inc,ar_con,ar_inc   
         out_final = []
         for i in range(len(channel_data.T)):
-            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip))
+            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
         out_final = np.asarray(out_final).T
         out_final = out_final.transpose()
         return out_final
@@ -1220,32 +1268,6 @@ def plot_ERPs(data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color
     #ax.yaxis.grid()
     plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
     plt.show()
-
-def neurocatchPipeline(filename,localPath,line,fs,Q,stimTrig):
-    # combines preprocessing and post processing
-    # processes erps for each channel
-    raw_data = importFile('neurocatch_1_2')
-    raw_data = raw_data.neurocatch_1_2(filename,localPath)
-    ts = raw_data[2]
-    adp_data = adaptive_filter(raw_data[1],raw_data[4],ts,plot='false')
-    not_data = notch_filter('neurocatch_1_2')
-    not_data = not_data.neurocatch_1_2(adp_data,line,fs,Q)
-    bpData = butter_bandpass_filter('neurocatch_1_2')
-    bp_data = bpData.neurocatch(not_data)
-    trig_chan = raw_data[3]
-    trig_xform = rising_edge(trig_chan)
-    # fz channel
-    fz_tones = tones(trig_xform,bp_data[:,0],ts,stimTrig)
-    fz_words = words(trig_xform,bp_data[:,0],ts,stimTrig)
-    # cz channel
-    cz_tones = tones(trig_xform,bp_data[:,1],ts,stimTrig)
-    cz_words = words(trig_xform,bp_data[:,1],ts,stimTrig)
-    # pz channel
-    pz_tones = tones(trig_xform,bp_data[:,2],ts,stimTrig)
-    pz_words = words(trig_xform,bp_data[:,2],ts,stimTrig)
-    erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(fz_tones[0])))
-    # tones[0] = std; tones[1] = dev; words[0] = con; words[1] = inc
-    return fz_tones[0],fz_tones[1],fz_words[0],fz_words[1],cz_tones[0],cz_tones[1],cz_words[0],cz_words[1],pz_tones[0],pz_tones[1],pz_words[0],pz_words[1],erp_latency,fz_tones[2],fz_tones[3]
 
 def fz_gndavg(scan_id,no_scans,len_epoch,gtec):
     scans = scan_id
@@ -1480,7 +1502,6 @@ def spectogramPlot(data,fs,nfft,y_max,nOverlap,figsize,subTitles,title):
         axs
     fig.colorbar(im, ax=axs, shrink=0.9, aspect=10)
 
-# signal quality evaluating functions
 def rolling_window(data_array,timing_array,window_size,step_size):
     """
     Inputs:
@@ -1500,756 +1521,6 @@ def rolling_window(data_array,timing_array,window_size,step_size):
     strides = (data_array.strides[0],) + data_array.strides
     rolled = np.lib.stride_tricks.as_strided(data_array, shape=shape, strides=strides)
     return rolled[np.arange(0,shape[0],idx_stepSize)]
-
-def general_amplitude(data,x,y):    
-    def genAmp(data):
-        bins = np.arange(-1000,1000,10)
-        counts,bin_edges = np.histogram(data, bins)
-        #    plt.hist(counts,bins)
-        #    plt.show()
-        # index of -100uV
-        idx_minUV = int((np.where(bins == -100))[0])
-        # index of 100uV
-        idx_maxUV = int((np.where(bins == 100))[0])
-        # extract counts between -100uV to 100uV
-        nrmCounts = counts[idx_minUV:idx_maxUV]
-        # extract the highest count between counts of -100uV to 100uV
-        max_counts = np.amax(nrmCounts)
-        # locate index of highest count
-        result = np.where(nrmCounts==max_counts)
-        result = result[0]
-        if result.size == 1:
-            idx_maxCount = np.asscalar(result)
-            # check for increment in first half of bin distribution between -100uV to 100uV
-            # fH = first half of bin distribution
-            fH = nrmCounts[0:(idx_maxCount+1)]
-            zero = np.array([0])
-            concat_fH = np.hstack((zero,fH))
-            diff_fH = np.diff(concat_fH)
-            # check for peak change between count of bins 
-            pc_fH = diff_fH > 0
-            # extract the elements with "true" peak changes
-            idx_true1 = np.where(pc_fH == True)
-            # use true indices to extract counts from fH
-            nbins_fH = fH[idx_true1]
-            # count the total number of bins in first half
-            idx_mc = np.where(counts==max_counts)
-            idx_mc = idx_mc[0]
-            idx_mc = idx_mc[0]
-            tbins_fH = counts[0:idx_mc+1]
-            # evaluate score for first half of bin
-            s1 = np.sum(nbins_fH)/np.sum(tbins_fH)
-            # incase it run into "Nan" scores
-            if np.isnan(s1):
-                s1 = np.nan_to_num(s1)
-            
-            # check for increment in second half of bin distribution between -100uV to 100uV
-            # sH = second half of bin distribution
-            sH = nrmCounts[idx_maxCount:len(nrmCounts)]
-            zero = np.array([0])
-            concat_sH = np.hstack((sH,zero))
-            diff_sH = np.diff(concat_sH)
-            # check for peak change between count of bins 
-            pc_sH = diff_sH < 0
-            # extract the elements with "true" peak changes
-            idx_true2 = np.where(pc_sH == True)
-            # use true indices to extract normal bin counts from fH
-            nbins_sH = sH[idx_true2]
-            # count the total number of bins in first half
-            idx_mc = np.where(counts==max_counts)
-            idx_mc = idx_mc[0]
-            idx_mc = idx_mc[0]
-            tbins_sH = counts[idx_mc:len(counts)]
-            # evaluate score for first half of bin
-            s2 = np.sum(nbins_sH)/np.sum(tbins_sH)
-            # incase it run into "Nan" scores
-            if np.isnan(s2):
-                s2 = np.nan_to_num(s2)
-            s3 = int(((s1+s2)/2)*100)
-            
-        elif result.size > 1:
-            # in case of more than 1 highest count e.g., three, we pick the first highest count
-            idx_maxCount = result[0]
-            # check for increment in first half of bin distribution between -100uV to 100uV
-            # fH = first half of bin distribution
-            fH = nrmCounts[0:(idx_maxCount+1)]
-            zero = np.array([0])
-            concat_fH = np.hstack((zero,fH))
-            diff_fH = np.diff(concat_fH)
-            # check for peak change between count of bins 
-            pc_fH = diff_fH > 0
-            # extract the elements with "true" peak changes
-            idx_true1 = np.where(pc_fH == True)
-            # use true indices to extract counts from fH
-            nbins_fH = fH[idx_true1]
-            # count the total number of bins in first half
-            idx_mc = np.where(counts==max_counts)
-            idx_mc = idx_mc[0]
-            idx_mc = idx_mc[0]
-            tbins_fH = counts[0:idx_mc+1]
-            # evaluate score for first half of bin
-            s1 = np.sum(nbins_fH)/np.sum(tbins_fH)
-            # incase it run into "Nan" scores
-            if np.isnan(s1):
-                s1 = np.nan_to_num(s1)
-            
-            # check for increment in second half of bin distribution between -100uV to 100uV
-            # we pick the third (or last) highest count to create the second half
-            idx_maxCount = result[(result.size-1)]
-            # sH = second half of bin distribution
-            sH = nrmCounts[idx_maxCount:len(nrmCounts)]
-            zero = np.array([0])
-            concat_sH = np.hstack((sH,zero))
-            diff_sH = np.diff(concat_sH)
-            # check for peak change between count of bins 
-            pc_sH = diff_sH < 0
-            # extract the elements with "true" peak changes
-            idx_true2 = np.where(pc_sH == True)
-            # use true indices to extract normal bin counts from fH
-            nbins_sH = sH[idx_true2]
-            # count the total number of bins in first half
-            idx_mc = np.where(counts==max_counts)
-            idx_mc = idx_mc[0]
-            idx_mc = idx_mc[(idx_mc.size-1)]
-            tbins_sH = counts[idx_mc:len(counts)]
-            # evaluate score for first half of bin
-            s2 = np.sum(nbins_sH)/np.sum(tbins_sH)
-            # incase it run into "Nan" scores
-            if np.isnan(s2):
-                s2 = np.nan_to_num(s2)
-            s3 = int(((s1+s2)/2)*100)
-        return s3
-
-    window = rolling_window(data,x,y)
-    
-    com_arr = np.array([])
-    for x in range(len(window)): 
-        sub_arr = genAmp(window[x,:])
-        com_arr = np.hstack([com_arr, sub_arr])
-    com_arr = com_arr.reshape((len(com_arr)),1) 
-    
-    rank = (np.where(com_arr < 100))[0]
-    win_score = np.where(com_arr == 100, 0, com_arr)
-    win_score = np.where(win_score > 0, 1, win_score)
-    win_score = win_score.reshape(1,len(win_score))
-    clean_win = np.count_nonzero(win_score==0)
-    score1 = int((clean_win/len(win_score.T))*100)
-    print("score 1:",score1)
-    return score1,win_score
-
-def amplitude_spectrum(v,w,x,y):    
-    data = v
-    fs = w
-    def ampspect(data,fs):
-        # fs = 500
-        win = 4 * fs
-        freq, psd= signal.welch(data, fs, nperseg=win)
-        low, high = 1, 4
-        idx_delta = np.logical_and(freq >= low, freq <= high)
-        result = np.where(idx_delta == True)
-        idx = result[0]
-        deltaPower = psd[idx]
-
-        freq, psd= signal.welch(data, fs, nperseg=win)
-        low, high = 4, 8
-        idx_theta = np.logical_and(freq >= low, freq <= high)
-        result = np.where(idx_theta == True)
-        idx = result[0]
-        thetaPower = psd[idx]
-
-        freq, psd= signal.welch(data, fs, nperseg=win)
-        low, high = 8, 12
-        idx_alpha = np.logical_and(freq >= low, freq <= high)
-        result = np.where(idx_alpha == True)
-        idx = result[0]
-        alphaPower = psd[idx]
-
-        freq, psd= signal.welch(data, fs, nperseg=win)
-        low, high = 12, 30
-        idx_beta = np.logical_and(freq >= low, freq <= high)
-        result = np.where(idx_beta == True)
-        idx = result[0]
-        betaPower = psd[idx]
-
-        freq, psd= signal.welch(data, fs, nperseg=win)
-        low, high = 30, 50
-        idx_gamma = np.logical_and(freq >= low, freq <= high)
-        result = np.where(idx_gamma == True)
-        idx = result[0]
-        gammaPower = psd[idx]
-        
-        bw_bands = np.concatenate((deltaPower, thetaPower, alphaPower, betaPower, gammaPower),axis=0)
-        avg_spectrum = np.mean(bw_bands)
-        return avg_spectrum
-    
-    window = rolling_window(data,x,y)
-    
-    com_arr = np.array([])
-    for x in range(len(window)): 
-        sub_arr = ampspect(window[x,:],fs)
-        com_arr = np.hstack([com_arr, sub_arr])
-    com_arr = com_arr.reshape((len(com_arr)),1) 
-
-    amp_spec = com_arr
-    mean = np.mean(data)
-    std = np.std(data)
-    x = amp_spec
-
-    win_score4 = np.array([])
-
-    for i in range(len(x)):
-        if ((mean) <= (x[i,:]) <= (1*std)) or ((mean) >= (x[i,:]) >= (-1*std)):
-            k4 = 0
-        elif ((x[i,:]) >= (1*std)) or ((x[i,:]) <= (-1*std)):
-            k4 = 1
-        win_score4 = np.hstack([win_score4,k4])
-
-    count_zeros = np.count_nonzero(win_score4==0)
-    s2 = int(((count_zeros)/(len(win_score4)))*100)
-    print("score 2:",s2)
-    win_score4 = win_score4.reshape(1,len(win_score4))
-    return s2,win_score4
-
-def maximum_gradient(data,x,y):     
-    def MG(data):
-        res = [data[i + 1] - data[i] for i in range(len(data)-1)]
-        res = np.asarray(res)
-        maxGrad = np.max(res)
-        return maxGrad
-    
-    window = rolling_window(data,x,y)
-    
-    com_arr = np.array([])
-    for x in range(len(window)): 
-        sub_arr = MG(window[x,:])
-        com_arr = np.hstack([com_arr, sub_arr])
-    com_arr = com_arr.reshape((len(com_arr)),1) 
-
-    maxGrad = com_arr
-    mean = np.mean(data)
-    std = np.std(data)
-    x = maxGrad
-
-    win_score6 = np.array([])
-
-    for i in range(len(x)):
-        if ((mean) <= (x[i,:]) <= (1*std)) or ((mean) >= (x[i,:]) >= (-1*std)):
-            k6 = 1
-        elif ((x[i,:]) >= (1*std)) or ((x[i,:]) <= (-1*std)):
-            k6 = 0
-        win_score6 = np.hstack([win_score6,k6])
-
-    count_zeros = np.count_nonzero(win_score6==0)
-    s3 = int(((count_zeros)/(len(win_score6)))*100)
-    print("score 3:",s3)
-    win_score6 = win_score6.reshape(1,len(win_score6))
-    return s3,win_score6
-
-def total_quality(x,y,z):
-    stackedMetrics = (np.concatenate((x,y,z),axis = 0))
-    sumStackedMetrics = np.mean(stackedMetrics,axis = 0)
-    sumStackedMetrics = sumStackedMetrics.reshape((len(sumStackedMetrics)),1)
-    sumStackedMetrics = sumStackedMetrics.T   # metrics variable hold the 0's, 1's or 2's
-    total_score = np.count_nonzero(sumStackedMetrics==0)
-    eegQuality = int(((total_score)/(len(stackedMetrics.T)))*100)
-    print("amount of clean signal:","{:.2%}".format((int(eegQuality))/100))
-    return eegQuality
-
-def print_array(arr):
-    """
-    prints a 2-D numpy array in a nicer format
-    """
-    for a in arr:
-        for elem in a:
-            print("{}".format(elem).rjust(3), end="    ")
-        print(end="\n")
-
-def sq_chan(data):
-    idx_folders = data
-    info1 = idx_folders[0:7]
-    info2 = idx_folders[7:20]
-        # %% extract correct eog position
-    def listToString(s):  
-           # initialize an empty string 
-           str1 = ""  
-           # traverse in the string   
-           for ele in s:  
-               str1 += ele   
-       # return string   
-           return str1
-       # Driver code     
-    
-    # EOG channel extraction using subject metadata i.e., eogChan_locator algorithm
-    t = r"/Users/oseho/sfuvault/Documents/brainNet/projects/laurel place/dev/dataset/"
-    p = info1 # info1
-    u = info2 # info 2
-    txt = [t,p,u] 
-    txt = (listToString(txt))
-    txt = [txt]
-    etxt = txt[0]
-    
-    path = etxt
-    
-    # Change the directory
-    os.chdir(path)
-    
-    # iterate through all file
-    for file in os.listdir():
-        # Check whether file is in text format or not
-        if file.endswith(".txt"):
-            file_path = f"{path}\{file}"
-            
-    with open(file_path, 'r') as f:
-        lines = f.readlines(200)
-       
-    def two_digits(data):
-        # electrodes with Nan kOhms 
-        reject_impedance = 1000
-        fullstring = data
-        substring = "NaN"
-        if substring in fullstring:
-            val3 = reject_impedance
-        # electrodes with numeric kOhms
-        else:
-            val1 = data
-            val2 = val1[4:] # delete unnecessary characters from the front
-            val2 = val2[:2]
-            val3 = int(float(val2)) # delete unnecessary characters from the back then convert to integer
-            import math
-            # check 1
-            digits = int(math.log10(val3))+1 # check number of digits in result
-            if digits == 2: # expected result
-                val3 = val3
-            if digits < 2: # unexpected result 1
-                val5 = val1
-                val5 = val5[4:]
-                val5 = val5[:3]
-                val3 = int(float(val5))
-            # check 2
-            digits = int(math.log10(val3))+1 # check number of digits in result
-            if digits == 2: # expected result
-                val3 = val3
-            if digits < 1: # unexpected result 1
-                val6 = val1
-                val6 = val6[4:]
-                val6 = val6[:4]
-                val3 = int(float(val6))
-        return val3
-       
-    def three_digits(data):
-        # electrodes with Nan kOhms 
-        reject_impedance = 1000
-        fullstring = data
-        substring = "NaN"
-        if substring in fullstring:
-            val3 = reject_impedance
-        # electrodes with numeric kOhms
-        else:
-            val1 = data
-            val2 = val1[4:]
-            val2 = val2[:3]
-            val3 = int(float(val2))
-            import math
-            # check 1
-            digits = int(math.log10(val3))+1 # check number of digits in result
-            if digits == 3: # expected result
-                val3 = val3
-            if digits < 3: # unexpected result 1
-                val5 = val1
-                val5 = val5[4:]
-                val5 = val5[:4]
-                val3 = int(float(val5))
-            # check 2
-            digits = int(math.log10(val3))+1 # check number of digits in result
-            if digits == 3: # expected result
-                val3 = val3
-            if digits < 2: # unexpected result 1
-                val6 = val1
-                val6 = val6[4:]
-                val6 = val6[:5]
-                val3 = int(float(val6))
-        return val3
-       
-    p3 = lines[9] # extract line
-    if len(p3)<=15:
-        p3 = two_digits(p3)
-    else:
-        p3 = three_digits(p3)
-    
-    p4 = lines[11]
-    if len(p4)<=15:
-        p4 = two_digits(p4)
-    else:
-        p4 = three_digits(p4)
-    
-    
-    p07 = lines[12]
-    if len(p07)<=15:
-        p07 = two_digits(p07)
-    else:
-        p07 = three_digits(p07)
-    
-    
-    p08 = lines[13]
-    if len(p08)<=15:
-        p08 = two_digits(p08)
-    else:
-        p08 = three_digits(p08)
-    
-    oz = lines[14]
-    if len(oz)<=15:
-        oz = two_digits(oz)
-    else:
-        oz = three_digits(oz)
-    
-    
-    # %% import raw file 1
-    t = "/Users/oseho/sfuvault/Documents/brainNet/projects/laurel place/dev/dataset/"
-    v = '.bin'
-    y = '/'
-    s = [t,p,u,y,p,u,v] 
-    r = (listToString(s))  
-    r = [r]
-    filenames = glob.glob(r[0])
-    print(filenames)
-    data = [np.fromfile(f, dtype=np.float32) for f in filenames]
-    data1 = data[0]
-    
-    dataCols = gtec['dataCols']
-    dataRows = int(len(data1)/dataCols)                                # 14 columns or channels
-    data1 = data1.reshape(dataRows, dataCols)
-    
-    # %% configure eeg channels
-    eegChans = gtec['eegChans']
-    fz = eegChans[0]
-    fz1 = data1[:,fz]     #extract column 0
-    fz = fz1.reshape(1,dataRows)
-    
-    cz = eegChans[1]
-    cz1 = data1[:,cz]
-    cz = cz1.reshape(1, dataRows)
-    
-    pz = eegChans[2]
-    pz1 = data1[:,pz]
-    pz = pz1.reshape(1,dataRows)
-    
-    # %% configure eog channels
-    if p3 < 501:
-        eogChans = gtec['eogChans']
-        eog10 = eogChans[0]
-        eogChan1 = data1[:,eog10]
-        eogChan1 = eogChan1.reshape(1,dataRows)
-    else:
-        eogChan1 = np.zeros(len(fz.T))
-        eogChan1 = eogChan1.reshape(1,len(eogChan1))
-    
-    if p4 < 501:
-        eogChans = gtec['eogChans']
-        eog20 = eogChans[1]
-        eogChan2 = data1[:,eog20]
-        eogChan2 = eogChan2.reshape(1,dataRows)
-    else:
-        eogChan2 = np.zeros(len(fz.T))
-        eogChan2 = eogChan2.reshape(1,len(eogChan2))
-    
-    if p07 < 501:
-        eogChans = gtec['eogChans']
-        eog30 = eogChans[2]
-        eogChan3 = data1[:,eog30]
-        eogChan3 = eogChan3.reshape(1,dataRows)
-    else:
-        eogChan3 = np.zeros(len(fz.T))
-        eogChan3 = eogChan3.reshape(1,len(eogChan3))
-    
-    if p08 < 501:
-        eogChans = gtec['eogChans']
-        eog40 = eogChans[3]
-        eogChan4 = data1[:,eog40]
-        eogChan4 = eogChan4.reshape(1,dataRows)
-    else:
-        eogChan4 = np.zeros(len(fz.T))
-        eogChan4 = eogChan4.reshape(1,len(eogChan4))
-    
-    if oz < 501:
-        eogChans = gtec['eogChans']
-        eog50 = eogChans[4]
-        eogChan5 = data1[:,eog50]
-        eogChan5 = eogChan5.reshape(1,dataRows)
-    else:
-        eogChan5 = np.zeros(len(fz.T))
-        eogChan5 = eogChan5.reshape(1,len(eogChan5))
-    
-    # %% configure trigger channel
-    trigCol = gtec['trigCol']
-    trig = data1[:,trigCol]
-    trig = trig.reshape(1,dataRows)
-    
-    # %% configure raw file
-    rawData = np.concatenate((fz, cz, pz,eogChan1,eogChan2,eogChan3,eogChan4,eogChan5,trig))
-    rawData = rawData.T
-    
-    # delete non zero columns i.e., the eogchans that are not in the data represented by zero columns
-    mask = (rawData == 0).all(0)
-        # Find the indices of these columns
-    column_indices = np.where(mask)[0]
-        # Update x to only include the columns where non-zero values occur.
-    rawData = rawData[:,~mask] # rawData containing eegChans,
-    
-    # %% the new raw data just containing the required eegchans,eogchans and the trig channel
-       # correctly name channels in raw Data
-    csm = dict(fz=[0], cz=[1], pz=[2], eog1=[3], eog2=[4], ntrig=[5])
-    csm_fz = csm['fz']
-    csm_fz = csm_fz[0]
-    csm_cz = csm['cz']
-    csm_cz = csm_cz[0]
-    csm_pz = csm['pz']
-    csm_pz = csm_pz[0]
-    csm_eog1 = csm['eog1']
-    csm_eog1 = csm_eog1[0]
-    csm_eog2 = csm['eog2']
-    csm_eog2 = csm_eog2[0]
-    csm_ntrig = csm['ntrig']
-    csm_ntrig = csm_ntrig[0]
-
-
-    # condition 1 assesses signal quality of raw eeg data without eog channels
-    if len(rawData.T)==4:
-        csm_ntrig = 3
-        rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_ntrig]]  
-        rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
-        print("EOG data not available for this subject")
-        eegQuality1 = 0
-        eegQuality2 = 0
-        eegQuality3 = 0
-        eegQuality = (np.array((eegQuality1,eegQuality2,eegQuality3)))
-
-
-    # condition 2 assesses signal quality of raw eeg data with just one eog channel
-    elif len(rawData.T)==5:
-        csm_ntrig = 4
-        rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_ntrig]]  
-        rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
-        rawEOG = rawData[:,[csm_eog1]]
-
-        # time period of scan
-        fs = gtec['fs']
-        sfreq = fs
-        dt = 1/sfreq
-        stop = dataRows/sfreq 
-        Ts = np.arange(0,stop,dt) 
-        Ts = Ts.reshape((len(Ts)),1)
-    
-        # %% Adaptive filter
-        eegData = rawEEG
-        eogData = rawEOG
-        forgetF=0.995
-        nKernel=5
-        startSample=0
-        p = False
-        if len(eogData.shape) == 1:
-            eogData = np.reshape(eogData, (eogData.shape[0], 1))
-        # initialise Recursive Least Squares (RLS) filter state
-        nEOG = eogData.shape[1]
-        nEEG = eegData.shape[1]
-        hist = np.zeros((nEOG, nKernel))
-        R_n = np.identity(nEOG * nKernel) / 0.01
-        H_n = np.zeros((nEOG * nKernel, nEEG))
-        X = np.hstack((eegData, eogData)).T          # sort EEG and EOG channels, then transpose into row variables
-        eegIndex = np.arange(nEEG)                              # index of EEG channels within X
-        eogIndex = np.arange(nEOG) + eegIndex[-1] + 1           # index of EOG channels within X
-        for n in range(startSample, X.shape[1]):
-            hist = np.hstack((hist[:, 1:], X[eogIndex, n].reshape((nEOG, 1))))  # update the EOG history by feeding in a new sample
-            tmp = hist.T                                                        # make it a column variable again (?)
-            r_n = np.vstack(np.hsplit(tmp, tmp.shape[-1]))
-            K_n = np.dot(R_n, r_n) / (forgetF + np.dot(np.dot(r_n.T, R_n), r_n))                                           # Eq. 25
-            R_n = np.dot(np.power(forgetF, -1),R_n) - np.dot(np.dot(np.dot(np.power(forgetF, -1), K_n), r_n.T), R_n)       #Update R_n
-            s_n = X[eegIndex, n].reshape((nEEG, 1))                   #get EEG signal and make sure it's a 1D column array
-            e_nn = s_n - np.dot(r_n.T, H_n).T  #Eq. 27
-            H_n = H_n + np.dot(K_n, e_nn.T)
-            e_n = s_n - np.dot(r_n.T, H_n).T
-            X[eegIndex, n] = np.squeeze(e_n)
-        cleanData = X[eegIndex, :].T
-        
-        # %% EEG Signal Quality Metrics: first time domain metric using score 1 is based on the rms  
-        fz_Q1 = general_amplitude(cleanData[:,0],2000,500)
-        cz_Q1 = general_amplitude(cleanData[:,1],2000,500)
-        pz_Q1 = general_amplitude(cleanData[:,2],2000,500) # (len(x.T)) is equal to the number of windows
-        
-        # %%  EEG Signal Quality Metrics: second time domain metric using score 3  : zero crossing rate
-        fz_Q2 = amplitude_spectrum(cleanData[:,0],fs,2000,500)
-        cz_Q2 = amplitude_spectrum(cleanData[:,1],fs,2000,500)
-        pz_Q2 = amplitude_spectrum(cleanData[:,2],fs,2000,500)
-        
-        # %%  EEG Signal Quality Metrics: score 6: Kurtosis
-        fz_Q3 = maximum_gradient(cleanData[:,0],2000,500)
-        cz_Q3 = maximum_gradient(cleanData[:,1],2000,500)
-        pz_Q3 = maximum_gradient(cleanData[:,2],2000,500)
-
-        # Total score for fz channel
-        fz_Quality = total_quality(fz_Q1[1], fz_Q2[1], fz_Q3[1])
-        cz_Quality = total_quality(cz_Q1[1], cz_Q2[1], cz_Q3[1])
-        pz_Quality = total_quality(pz_Q1[1], pz_Q2[1], pz_Q3[1])
-        eegQuality = (np.array((fz_Quality,cz_Quality,pz_Quality)))
-
-
-    # condition 3 assesses signal quality of raw eeg data with just two eog channel
-    elif len(rawData.T)==6:
-        rawData = rawData[:,[csm_fz,csm_cz,csm_pz,csm_eog1,csm_eog2,csm_ntrig]]  
-        rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              # rawData4 is rawData3 without trigger channel (index 5)
-        rawEOG = rawData[:,[csm_eog1,csm_eog2]]
-    
-        # time period of scan
-        fs = gtec['fs']
-        sfreq = fs
-        dt = 1/sfreq
-        stop = dataRows/sfreq 
-        Ts = np.arange(0,stop,dt) 
-        Ts = Ts.reshape((len(Ts)),1)
-    
-        # Adaptive filter
-        eegData = rawEEG
-        eogData = rawEOG
-        forgetF=0.995
-        nKernel=5
-        startSample=0
-        p = False
-        if len(eogData.shape) == 1:
-            eogData = np.reshape(eogData, (eogData.shape[0], 1))
-        # initialise Recursive Least Squares (RLS) filter state
-        nEOG = eogData.shape[1]
-        nEEG = eegData.shape[1]
-        hist = np.zeros((nEOG, nKernel))
-        R_n = np.identity(nEOG * nKernel) / 0.01
-        H_n = np.zeros((nEOG * nKernel, nEEG))
-        X = np.hstack((eegData, eogData)).T          # sort EEG and EOG channels, then transpose into row variables
-        eegIndex = np.arange(nEEG)                              # index of EEG channels within X
-        eogIndex = np.arange(nEOG) + eegIndex[-1] + 1           # index of EOG channels within X
-        for n in range(startSample, X.shape[1]):
-            hist = np.hstack((hist[:, 1:], X[eogIndex, n].reshape((nEOG, 1))))  # update the EOG history by feeding in a new sample
-            tmp = hist.T                                                        # make it a column variable again (?)
-            r_n = np.vstack(np.hsplit(tmp, tmp.shape[-1]))
-            K_n = np.dot(R_n, r_n) / (forgetF + np.dot(np.dot(r_n.T, R_n), r_n))                                           # Eq. 25
-            R_n = np.dot(np.power(forgetF, -1),R_n) - np.dot(np.dot(np.dot(np.power(forgetF, -1), K_n), r_n.T), R_n)       #Update R_n
-            s_n = X[eegIndex, n].reshape((nEEG, 1))                   #get EEG signal and make sure it's a 1D column array
-            e_nn = s_n - np.dot(r_n.T, H_n).T  #Eq. 27
-            H_n = H_n + np.dot(K_n, e_nn.T)
-            e_n = s_n - np.dot(r_n.T, H_n).T
-            X[eegIndex, n] = np.squeeze(e_n)
-        cleanData = X[eegIndex, :].T
-        
-        # %% EEG Signal Quality Metrics: first time domain metric using score 1 is based on the rms  
-        fz_Q1 = general_amplitude(cleanData[:,0],2000,500)
-        cz_Q1 = general_amplitude(cleanData[:,1],2000,500)
-        pz_Q1 = general_amplitude(cleanData[:,2],2000,500) # (len(x.T)) is equal to the number of windows
-        
-        # %%  EEG Signal Quality Metrics: second time domain metric using score 3  : zero crossing rate
-        fz_Q2 = amplitude_spectrum(cleanData[:,0],fs,2000,500)
-        cz_Q2 = amplitude_spectrum(cleanData[:,1],fs,2000,500)
-        pz_Q2 = amplitude_spectrum(cleanData[:,2],fs,2000,500)
-        
-        # %%  EEG Signal Quality Metrics: score 6: Kurtosis
-        fz_Q3 = maximum_gradient(cleanData[:,0],2000,500)
-        cz_Q3 = maximum_gradient(cleanData[:,1],2000,500)
-        pz_Q3 = maximum_gradient(cleanData[:,2],2000,500)
-
-        # Total score for fz channel
-        fz_Quality = total_quality(fz_Q1[1], fz_Q2[1], fz_Q3[1])
-        cz_Quality = total_quality(cz_Q1[1], cz_Q2[1], cz_Q3[1])
-        pz_Quality = total_quality(pz_Q1[1], pz_Q2[1], pz_Q3[1])
-        eegQuality = (np.array((fz_Quality,cz_Quality,pz_Quality)))
-
-    return eegQuality
-
-def sqf_gnd_avg(no_scans,no_channels,data,channel):
-    metrics = np.array([])
-    no_scans = no_scans
-    no_chans = no_channels
-    channel = channel
-    folders = data
-    for i in range(no_scans):
-        eegQuality = sq_chan(folders[i])
-        metrics = np.hstack([metrics, eegQuality])
-    
-    # place scores in respective channels
-    metrics = metrics.reshape((len(metrics)),1)
-    chan_qs = np.int_(metrics.reshape(no_scans,no_chans))
-    
-    # select channel cz for utilization
-    scansQS = chan_qs[:,channel]
-    # group the scans by either scan 1 or scan 2
-    test_list = folders
-    # using sorted() + groupby()
-    # Initial Character Case Categorization
-    util_func = lambda x: x[0:6]
-    temp = sorted(test_list, key = util_func)
-    runs = [list(ele) for i, ele in groupby(temp, util_func)]
-    countScanTime = []
-    for x in runs:
-       p = (len(x))
-       countScanTime.append(p)
-       
-    # first stage: group the quality scores 
-    runsQS = []
-    for number in countScanTime:
-        runsQS.append(scansQS[:number])
-        scansQS = scansQS[number:]
-        
-    # find mean of each element inside the list out
-    avg_runsQS = []
-    for i in range(len(runsQS)):
-       avg_runsQS.append(np.mean(runsQS[i]))
-    
-    
-    #%% extract the number of times group of runs belonging to a particular subject appear
-    # automatically count the group of of scans belonging to participants
-    xscans = []
-    for i in range(len(runs)):
-        xscans.append(runs[i][0])
-    xscans = [x[:4] for x in xscans]
-    count = Counter(map(tuple, xscans))
-    count = pd.DataFrame.from_dict(count, orient='index').reset_index()
-    countSubjRun = (count[0]).tolist()
-    
-    #%%
-    # second stage: use the out_put to compare with the res file to scans per subject
-    avg_runsQS_ = list(avg_runsQS)
-    runs_ = runs
-    subjQS = []
-    subj = []
-    for number in countSubjRun:
-        subjQS.append(avg_runsQS_[:number])
-        avg_runsQS_ = avg_runsQS_[number:]
-        subj.append(runs_[:number])
-        runs_ = runs_[number:]
-
-    #%% maximum values
-    
-    # scores
-    # find max values amongst grp_scores
-    max_subjQS = []
-    for i in range(len(subjQS)):
-        if subjQS[0] == subjQS[1]:
-            max_subjQS.append((subjQS[i][0]))
-        else:
-            max_subjQS.append(np.amax(subjQS[i]))
-       
-    # locate index of max values amongst grp_scores
-    idx_ = []
-    for i in range(len(subjQS)):
-        idx_.append((np.where(subjQS[i] == max_subjQS[i]))[0])
-        
-    idx__ = []
-    for i in range(len(subjQS)):
-        idx__.append(idx_[i][0])
-    
-    # scans
-    # use the idx of the maximum scores to extract the scans with maximum scores
-    max_subj = []
-    for i in range(len(idx__)):
-        x = idx__[i]
-        max_subj.append(subj[i][x])
-    return max_subj
-
 
 # Brain Vital Signs or Elemental Brain Scores functions
 def normData_analysis(data,rem_outliers):
@@ -2401,9 +1672,6 @@ def plots(x,y,titles,figsize,pltclr):
         axs.tick_params(axis='both', which='major', labelsize=8)
         axs.label_outer()
 
-def sar(x,y):
-    return 10*np.log10((np.std(x))/(np.std(x-y)))
-
 def psdPlots(data,fs):
 # Define window length (4 seconds)
     win = 4 * fs
@@ -2421,3 +1689,82 @@ def psdPlots(data,fs):
     plt.title("Welch's periodogram")
     #plt.xlim([0, freqs.max()])
     sns.despine()
+
+def DWT(data,time_array,wavelet):
+    #   Probability Mapping Based Artifact Detection and Wavelet Denoising based 
+    #   Artifact Removal from Scalp EEG for BCI Applications
+    #  Perform DWT on the data
+    #   Input: data - EEG data: 1D array (samples x channel)
+    #   Output: new signal: (samples x number of wavelets)
+    #           signal_global - new signal extracted after global threshold 
+    #           signal_std - new signal extracted after std threshold 
+    #   Reference:  choice of number of levels to threshold gotten from "Comparative Study of Wavelet-Based Unsupervised 
+    #               Ocular Artifact Removal Techniques for Single-Channel EEG Data"
+    
+    def dwt_only(data,wavelet):
+        def dwt(data,wavelet):
+            coeffs = wavedec(data,wavelet,level=10)
+            return np.array(coeffs,dtype=object).T
+
+        def global_threshold(data,coeffs):
+            def coeffs_approx(data,coeffs):
+                return (np.median(abs(coeffs[0]))/0.6745)*(np.sqrt(2*np.log(len(data))))
+            def coeffs_detail(data,coeffs):
+                return (np.median(abs(coeffs[1]))/0.6745)*(np.sqrt(2*np.log(len(data))))
+            arr_approx = coeffs_approx(data,coeffs)
+            arr_detail = coeffs_detail(data,coeffs)
+            return np.vstack((arr_approx,arr_detail))
+
+        def apply_threshold(coeffs,threshold):
+            def apply_threshold_approx(coeffs,threshold):
+                coeffs[0][abs(coeffs[0])>threshold[1]] = 0
+                coeffs_approx = coeffs[0]
+                return coeffs_approx
+            def apply_threshold_detail(coeffs,threshold):
+                coeffs = coeffs[1:len(coeffs)]
+                coeffs[0][abs(coeffs[0])>threshold[1]] = 0
+                coeffs[1][abs(coeffs[1])>threshold[1]] = 0
+                coeffs[2][abs(coeffs[2])>threshold[1]] = 0  # level 8
+                coeffs[3][abs(coeffs[3])>threshold[1]] = 0  # level 7
+                coeffs[4][abs(coeffs[4])>threshold[1]] = 0  # level 6
+                coeffs[5][abs(coeffs[5])>threshold[1]] = 0  # level 5
+                coeffs[6][abs(coeffs[6])>threshold[1]] = 0  # level 4
+                coeffs[7][abs(coeffs[7])>threshold[1]] = 0  # level 3
+                coeffs[8][abs(coeffs[8])>threshold[1]] = 0
+                coeffs[9][abs(coeffs[9])>threshold[1]] = 0
+                return coeffs
+            arr_approx = apply_threshold_approx(coeffs,threshold)
+            arr_detail = apply_threshold_detail(coeffs,threshold)
+            arr_detail = list(np.array(arr_detail).T)
+            arr_approx = arr_approx
+            coefs = arr_detail
+            (coefs).insert(0,arr_approx)
+            return coefs
+
+        def inv_dwt(coeffs,wavelet):
+            def inverse_dwt(coeffs,wavelet):
+                return waverec(coeffs,wavelet)
+            arr = (inverse_dwt(list(np.array(coeffs,dtype=object)),wavelet))
+            return  (np.array(arr).T)[:-1]
+
+        coeffs = dwt(data,wavelet)
+        threshold_global = global_threshold(data,coeffs)
+        coeffs_global = apply_threshold(coeffs,threshold_global)
+        signal_global = inv_dwt(coeffs_global,wavelet)
+        return signal_global
+
+    newEEG_global = []
+    for i in range(len(wavelet)):
+        newEEG_global.append((dwt_only(data,wavelet[i])))
+    newEEG_global = np.array(newEEG_global).T
+    if len(newEEG_global) != len(time_array):
+        if len(newEEG_global) > len(time_array):
+            diff = len(newEEG_global) - len(time_array)
+            newEEG_global = newEEG_global[:-diff,:]
+        elif len(newEEG_global) < len(time_array):
+            diff = len(time_array) - len(newEEG_global)
+            num_zeros = np.zeros((diff,len(newEEG_global[1])))
+            newEEG_global = np.append(newEEG_global,num_zeros,axis=0)
+    else:
+        newEEG_global = newEEG_global
+    return newEEG_global
