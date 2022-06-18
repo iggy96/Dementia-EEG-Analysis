@@ -24,7 +24,7 @@ class importFile:
             channel (trig)
     """
     class neurocatch:
-        def init(self,version,filename,localPath):
+        def init(self,version,filename,localPath,dispIMG):
             if version == 1.0:
                 data = filename
                 localPath = localPath.replace(os.sep, '/')   
@@ -153,9 +153,12 @@ class importFile:
 
                 metadata = open(file_path)
                 metadata = json.load(metadata)
+            if dispIMG == True:
                 for i in metadata:
                     print(i)
                 print(metadata['version'])
+            else:
+                pass
                 metadata_chans = metadata['channels']
                 metadata_imp = metadata['impedances']
                 # p3,p4,p07,p08,oz
@@ -168,7 +171,10 @@ class importFile:
             #  import raw file 1
             pathBin = [path+'/'+filename+'.bin']
             filenames = glob.glob(pathBin[0])
-            print(filenames)
+            if dispIMG == True:
+                print(filenames)
+            else:
+                pass
             data = [np.fromfile(f, dtype=np.float32) for f in filenames]
             data1 = data[0]
             dataCols = len(metadata_chans)
@@ -195,7 +201,10 @@ class importFile:
                 eog10 = eogChans[0]
                 eogChan1 = data1[:,eog10]
                 eogChan1 = eogChan1.reshape(1,dataRows)
-                print('channel P3 utilized')
+                if dispIMG == True:
+                    print('channel P3 utilized')
+                else:
+                    pass
             else:
                 eogChan1 = np.zeros(len(fz.T))
                 eogChan1 = eogChan1.reshape(1,len(eogChan1))
@@ -205,7 +214,10 @@ class importFile:
                 eog20 = eogChans[1]
                 eogChan2 = data1[:,eog20]
                 eogChan2 = eogChan2.reshape(1,dataRows)
-                print('channel P4 utilized')
+                if dispIMG == True:
+                    print('channel P4 utilized')
+                else:
+                    pass
             else:
                 eogChan2 = np.zeros(len(fz.T))
                 eogChan2 = eogChan2.reshape(1,len(eogChan2))
@@ -215,7 +227,10 @@ class importFile:
                 eog30 = eogChans[2]
                 eogChan3 = data1[:,eog30]
                 eogChan3 = eogChan3.reshape(1,dataRows)
-                print('channel P07 utilized')
+                if dispIMG == True:
+                    print('channel P07 utilized')
+                else:
+                    pass
             else:
                 eogChan3 = np.zeros(len(fz.T))
                 eogChan3 = eogChan3.reshape(1,len(eogChan3))
@@ -225,7 +240,10 @@ class importFile:
                 eog40 = eogChans[3]
                 eogChan4 = data1[:,eog40]
                 eogChan4 = eogChan4.reshape(1,dataRows)
-                print('channel P08 utilized')
+                if dispIMG == True:
+                    print('channel P08 utilized')
+                else:
+                    pass
             else:
                 eogChan4 = np.zeros(len(fz.T))
                 eogChan4 = eogChan4.reshape(1,len(eogChan4))
@@ -235,7 +253,10 @@ class importFile:
                 eog50 = eogChans[4]
                 eogChan5 = data1[:,eog50]
                 eogChan5 = eogChan5.reshape(1,dataRows)
-                print('channel 0Z utilized')
+                if dispIMG == True:
+                    print('channel 0Z utilized')
+                else:
+                    pass
             else:
                 eogChan5 = np.zeros(len(fz.T))
                 eogChan5 = eogChan5.reshape(1,len(eogChan5))
@@ -284,7 +305,10 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_ntrig]]
                 rawEEGEOG = np.concatenate((rawEEG),axis=1)
-                print('data contains Fz, Cz, Pz & no EOG channels')
+                if dispIMG == True:
+                    print('data contains Fz, Cz, Pz & no EOG channels')
+                else:
+                    pass
             
             elif len(rawData.T)==5:
                 csm_ntrig = 4
@@ -292,7 +316,10 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & one EOG channel')
+                if dispIMG == True:
+                    print('data contains Fz, Cz, Pz & one EOG channel')
+                else:
+                    pass
 
             elif len(rawData.T)==6:
                 csm_ntrig = 5
@@ -300,7 +327,10 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & two EOG channels')
+                if dispIMG == True:
+                    print('data contains Fz, Cz, Pz & two EOG channels')
+                else:
+                    pass
 
             elif len(rawData.T)==7:
                 csm_ntrig = 6
@@ -308,7 +338,10 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & three EOG channels')
+                if dispIMG == True:
+                    print('data contains Fz, Cz, Pz & three EOG channels')
+                else:
+                    pass
 
             elif len(rawData.T)==8:
                 csm_ntrig = 7
@@ -316,7 +349,10 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3,csm_eog4]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & four EOG channels')
+                if dispIMG == True:
+                    print('data contains Fz, Cz, Pz & four EOG channels')
+                else:
+                    pass
 
             elif len(rawData.T)==9:
                 csm_ntrig = 8
@@ -324,7 +360,10 @@ class importFile:
                 rawEEG = rawData[:,[csm_fz,csm_cz,csm_pz]]              
                 rawEOG = rawData[:,[csm_eog1,csm_eog2,csm_eog3,csm_eog4,csm_eog5]]
                 rawEEGEOG = np.concatenate((rawEEG,rawEOG),axis=1)
-                print('data contains Fz, Cz, Pz & five EOG channels')
+                if dispIMG == True:
+                    print('data contains Fz, Cz, Pz & five EOG channels')
+                else:
+                    pass
 
             # time period of scan
             fs = gtec['fs']
