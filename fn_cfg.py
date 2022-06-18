@@ -1561,6 +1561,12 @@ def rolling_window(data_array,timing_array,window_size,step_size):
     rolled = np.lib.stride_tricks.as_strided(data_array, shape=shape, strides=strides)
     return rolled[np.arange(0,shape[0],idx_stepSize)]
 
+def slidingWindow(X, window_length, stride1):
+    shape = (X.shape[0] - window_length + 1, window_length)
+    strides = (X.strides[0],) + X.strides
+    rolled = np.lib.stride_tricks.as_strided(X, shape=shape, strides=strides)
+    return rolled[np.arange(0,shape[0],stride1)]
+
 # Brain Vital Signs or Elemental Brain Scores functions
 def normData_analysis(data,rem_outliers):
 
