@@ -31,7 +31,7 @@ class importFile:
                 localPath = localPath + '/'  
                 path = localPath+data
                 os.chdir(path)
-                for file in (os.listdir(path))[0:2]:
+                for file in (os.listdir(path)):
                     if file.endswith(".txt"):
                         file_path = f"{path}/{file}"
                         
