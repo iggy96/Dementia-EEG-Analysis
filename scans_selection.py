@@ -5,6 +5,7 @@ Output: scans with the best eeg quality to represent each participants within a 
 Note: -     each participant within the dementia classes have mutiple runs taken per timepoint 
             i.e., some participants have eeg taken from them twice per timepoint while it varies for others
       -     code is designed based on two runs and not three timepoints
+      the low cut and highcut values of the signal quality function is fixed while the threshold is the parameter to be varied
 """
 from fn_cfg import *
 import params as cfg
@@ -19,12 +20,12 @@ print("Post-Quality Processing: Participants of each group are allocated just on
 print("\n")
 
 
-def scanSelection(device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,dem_class,timepoint,dispSubStats,dispMainStats):
+def scanSelection(device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,fs,line,dem_class,timepoint,dispSubStats,dispMainStats):
 
-    device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,dem_class,timepoint,dispSubStats,dispMainStats = device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,dem_class,timepoint,dispSubStats,dispMainStats
+    device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,fs,line,dem_class,timepoint,dispSubStats,dispMainStats = device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,fs,line,dem_class,timepoint,dispSubStats,dispMainStats
     
     
-    def eegSignalQuality(device_version,scan_ID,threshold,channel_name,local_path,dispSubStats):
+    def eegSignalQuality(device_version,scan_ID,threshold,channel_name,local_path,fs,line,dispSubStats):
         """
         """
         chans = dict(Fz=0,Cz=1,Pz=2)
@@ -36,7 +37,7 @@ def scanSelection(device_version,run_IDs_1,run_IDs_2,threshold,channel_name,loca
         filtering = filters()
         adaptiveFilterOutput = filtering.adaptive(rawEEG,rawEOG)
         notchFilterOutput = filtering.notch(adaptiveFilterOutput,line,fs)
-        bandPassFilterOutput = filtering.butterBandPass(notchFilterOutput,lowcut=0.1,highcut=5,fs=cfg.fs)
+        bandPassFilterOutput = filtering.butterBandPass(notchFilterOutput,lowcut=0.1,highcut=10,fs=fs)
         chan_idx = chans[channel_name]
         pkScore = quality_p2p(bandPassFilterOutput)
         pkScore = pkScore[chan_idx]
@@ -87,13 +88,13 @@ def scanSelection(device_version,run_IDs_1,run_IDs_2,threshold,channel_name,loca
     scores_runs_2 = []
     for i in range(len(run_IDs_1)):
         scan_ID = run_IDs_1[i]
-        scan,score = eegSignalQuality(version,scan_ID,threshold,channel,localPath,dispSubStats)
+        scan,score = eegSignalQuality(version,scan_ID,threshold,channel,localPath,fs,line,dispSubStats)
         status_runs_1.append(scan)
         scores_runs_1.append(score)
 
     for i in range(len(run_IDs_2)):
         scan_ID = run_IDs_2[i]
-        scan,score = eegSignalQuality(version,scan_ID,threshold,channel,localPath,dispSubStats)
+        scan,score = eegSignalQuality(version,scan_ID,threshold,channel,localPath,fs,line,dispSubStats)
         status_runs_2.append(scan)
         scores_runs_2.append(score)
 
@@ -183,38 +184,40 @@ eight_run1_SEVD = dementia_classes.run1_scansSEVD_8
 eight_run2_SEVD = dementia_classes.run2_scansSEVD_8
 
 
-threshold = 300
+threshold = 300 #uV
 localPath = '/Users/joshuaighalo/Downloads/EEG_Datasets/laurel_place/cleaned_dataset'
 destinationPath = "/Users/joshuaighalo/Documents/BrainNet/Projects/Workspace/results/laurel place/quality scans"
-destinationFileName = "quality_scans_laurel_place.csv"
+destinationFileName = "300uV_Threshold@0.1_10Hz.csv"
 version = 1.0
 channel = 'Cz'
-dispSubStats = True
+fs = cfg.fs
+line = cfg.line
+dispSubStats = False
 dispMainStats = True
 
-baseND = scanSelection(version,base_run1_ND,base_run2_ND,threshold,channel,localPath,
+baseND = scanSelection(version,base_run1_ND,base_run2_ND,threshold,channel,localPath,fs,line,
                         'no dementia','baseline',dispSubStats,dispMainStats)
-baseMILD = scanSelection(version,base_run1_MILD,base_run2_MILD,threshold,channel,localPath,
+baseMILD = scanSelection(version,base_run1_MILD,base_run2_MILD,threshold,channel,localPath,fs,line,
                         'mild dementia','baseline',dispSubStats,dispMainStats)
-baseMOD = scanSelection(version,base_run1_MOD,base_run2_MOD,threshold,channel,localPath,
+baseMOD = scanSelection(version,base_run1_MOD,base_run2_MOD,threshold,channel,localPath,fs,line,
                         'moderate dementia','baseline',dispSubStats,dispMainStats)
-baseSEVD = scanSelection(version,base_run1_SEVD,base_run2_SEVD,threshold,channel,localPath,
+baseSEVD = scanSelection(version,base_run1_SEVD,base_run2_SEVD,threshold,channel,localPath,fs,line,
                         'severe dementia','baseline',dispSubStats,dispMainStats)
-fourND = scanSelection(version,four_run1_ND,four_run2_ND,threshold,channel,localPath,
+fourND = scanSelection(version,four_run1_ND,four_run2_ND,threshold,channel,localPath,fs,line,
                         'no dementia','4-months',dispSubStats,dispMainStats)
-fourMILD = scanSelection(version,four_run1_MILD,four_run2_MILD,threshold,channel,localPath,
+fourMILD = scanSelection(version,four_run1_MILD,four_run2_MILD,threshold,channel,localPath,fs,line,
                         'mild dementia','4-months',dispSubStats,dispMainStats)
-fourMOD = scanSelection(version,four_run1_MOD,four_run2_MOD,threshold,channel,localPath,
+fourMOD = scanSelection(version,four_run1_MOD,four_run2_MOD,threshold,channel,localPath,fs,line,
                         'moderate dementia','4-months',dispSubStats,dispMainStats)
-fourSEVD = scanSelection(version,four_run1_SEVD,four_run2_SEVD,threshold,channel,localPath,
+fourSEVD = scanSelection(version,four_run1_SEVD,four_run2_SEVD,threshold,channel,localPath,fs,line,
                         'severe dementia','4-months',dispSubStats,dispMainStats)
-eightND = scanSelection(version,eight_run1_ND,eight_run2_ND,threshold,channel,localPath,
+eightND = scanSelection(version,eight_run1_ND,eight_run2_ND,threshold,channel,localPath,fs,line,
                         'no dementia','8-months',dispSubStats,dispMainStats)
-eightMILD = scanSelection(version,eight_run1_MILD,eight_run2_MILD,threshold,channel,localPath,
+eightMILD = scanSelection(version,eight_run1_MILD,eight_run2_MILD,threshold,channel,localPath,fs,line,
                         'mild dementia','8-months',dispSubStats,dispMainStats)
-eightMOD = scanSelection(version,eight_run1_MOD,eight_run2_MOD,threshold,channel,localPath,
+eightMOD = scanSelection(version,eight_run1_MOD,eight_run2_MOD,threshold,channel,localPath,fs,line,
                         'moderate dementia','8-months',dispSubStats,dispMainStats)
-eightSEVD = scanSelection(version,eight_run1_SEVD,eight_run2_SEVD,threshold,channel,localPath,
+eightSEVD = scanSelection(version,eight_run1_SEVD,eight_run2_SEVD,threshold,channel,localPath,fs,line,
                         'severe dementia','8-months',dispSubStats,dispMainStats)
 
 # export to csv
