@@ -8,6 +8,7 @@ Created on Tue Mar 16 19:00:13 2021
 
 from df_lib import*
 from params import*
+import params as cfg
 
 
 # Preprocessing functions
@@ -1283,7 +1284,7 @@ class erpExtraction:
         out_final = out_final.transpose()
         return out_final
 
-def plot_ERPs(data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color_1,color_2,amp_range):
+def plot_ERPs(destination_dir,data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color_1,color_2,amp_range,img_name):
     """
     This plot function possesses an array of abilities
     input:    x-axis: latency
@@ -1304,207 +1305,9 @@ def plot_ERPs(data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color
     ax.xaxis.set_major_locator(MultipleLocator(100)) # add major ticks on x axis         
     plt.vlines(x=[0.0], ymin=amp_range,ymax=-amp_range, colors='green', ls='--',lw=2)
     ax.invert_yaxis()
-    #ax.yaxis.grid()
     plt.legend(bbox_to_anchor=(1.0, 1), loc='upper left')  
+    plt.savefig(destination_dir+'/'+header+'_'+img_name+'.png',bbox_inches='tight')
     plt.show()
-
-def fz_gndavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[0]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[1]]))
-        zeros_con = np.vstack(([zeros_con, erp[2]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[3]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        avg_std = np.nanmean(scans_std,axis = 1)
-        return scans_std,avg_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        avg_dev = np.nanmean(scans_dev,axis = 1)
-        return scans_dev,avg_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        avg_con = np.nanmean(scans_con,axis = 1)
-        return scans_con,avg_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        avg_inc = np.nanmean(scans_inc,axis = 1)
-        return scans_inc,avg_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def cz_gndavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[4]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[5]]))
-        zeros_con = np.vstack(([zeros_con, erp[6]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[7]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        avg_std = np.nanmean(scans_std,axis = 1)
-        return scans_std,avg_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        avg_dev = np.nanmean(scans_dev,axis = 1)
-        return scans_dev,avg_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        avg_con = np.nanmean(scans_con,axis = 1)
-        return scans_con,avg_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        avg_inc = np.nanmean(scans_inc,axis = 1)
-        return scans_inc,avg_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def pz_gndavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[8]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[9]]))
-        zeros_con = np.vstack(([zeros_con, erp[10]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[11]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        avg_std = np.nanmean(scans_std,axis = 1)
-        return scans_std,avg_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        avg_dev = np.nanmean(scans_dev,axis = 1)
-        return scans_dev,avg_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        avg_con = np.nanmean(scans_con,axis = 1)
-        return scans_con,avg_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        avg_inc = np.nanmean(scans_inc,axis = 1)
-        return scans_inc,avg_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def fz_sngavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[0]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[1]]))
-        zeros_con = np.vstack(([zeros_con, erp[2]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[3]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        return scans_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        return scans_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        return scans_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        return scans_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def cz_sngavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[4]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[5]]))
-        zeros_con = np.vstack(([zeros_con, erp[6]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[7]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        return scans_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        return scans_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        return scans_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        return scans_inc,erp[12]
-    
-    return std,dev,con,inc
-
-def pz_sngavg(scan_id,no_scans,len_epoch,gtec):
-    scans = scan_id
-    zeros_std = np.zeros(len_epoch)
-    zeros_dev = np.zeros(len_epoch)
-    zeros_con = np.zeros(len_epoch)
-    zeros_inc = np.zeros(len_epoch)
-    for i in range(no_scans):
-        erp = pre_post_process(scans[i],gtec)
-        zeros_std = np.vstack(([zeros_std, erp[8]]))
-        zeros_dev = np.vstack(([zeros_dev, erp[9]]))
-        zeros_con = np.vstack(([zeros_con, erp[10]]))
-        zeros_inc = np.vstack(([zeros_inc, erp[11]]))
-
-    def std():
-        scans_std = np.delete(zeros_std,0,axis=0).T
-        return scans_std,erp[12]
-
-    def dev():
-        scans_dev = np.delete(zeros_dev,0,axis=0).T
-        return scans_dev,erp[12]
-
-    def con():
-        scans_con = np.delete(zeros_con,0,axis=0).T
-        return scans_con,erp[12]
-
-    def inc():
-        scans_inc = np.delete(zeros_inc,0,axis=0).T
-        return scans_inc,erp[12]
-    
-    return std,dev,con,inc
 
 def ptp_erpscan(peak_val,erp_data,subjs_data):
     p2p = peaktopeak(erp_data.T)
@@ -1813,3 +1616,61 @@ def DWT(data,time_array,wavelet):
     else:
         newEEG_global = newEEG_global
     return newEEG_global
+
+
+def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,label,img_name,destination_dir):
+    """
+    Functions generates averaged N100,P300 & N400 erps (std,dev,con & inc) from the combination of multiple eeg scans 
+    Input:      1. device_version = neurocatch version
+                2. scan_IDs = multiple eeg scan file names
+                3. dispIMG_Channel: display channel for the ERP plot using the channel name (string) or "All" to display all channels
+                4. local_path: local path to the eeg scans
+    Output: averaged erps
+    """
+    print(label)
+    def averageProcessedEEG(device_version,scan_ID,local_path,fs,line,lowcut,highcut,stimTrig,clip,dispIMG=False):
+        device = importFile.neurocatch()
+        fileObjects = device.init(device_version,scan_ID,local_path,dispIMG=False)
+        rawEEG = fileObjects[0]
+        rawEOG = fileObjects[1]
+        time = fileObjects[3]
+        trigOutput = fileObjects[4]
+        filtering = filters()
+        adaptiveFilterOutput = filtering.adaptive(rawEEG,rawEOG)
+        notchFilterOutput = filtering.notch(adaptiveFilterOutput,line,fs)
+        bandPassFilterOutput = filtering.butterBandPass(notchFilterOutput,lowcut,highcut,fs)
+        erps = erpExtraction()
+        N1P3 = erps.N100P300(trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
+        N4 = erps.N400(trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
+        N1P3_Fz,N1P3_Cz,N1P3_Pz,N4_Fz,N4_Cz,N4_Pz = N1P3[0],N1P3[1],N1P3[2],N4[0],N4[1],N4[2]
+        erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(N1P3_Fz[0]),dtype=object),dtype=object)
+        std_Fz,dev_Fz,std_Cz,dev_Cz,std_Pz,dev_Pz = N1P3_Fz[0],N1P3_Fz[1],N1P3_Cz[0],N1P3_Cz[1],N1P3_Pz[0],N1P3_Pz[1]
+        con_Fz,inc_Fz,con_Cz,inc_Cz,con_Pz,inc_Pz = N4_Fz[0],N4_Fz[1],N4_Cz[0],N4_Cz[1],N4_Pz[0],N4_Pz[1]
+        output = [std_Fz,dev_Fz,std_Cz,dev_Cz,std_Pz,dev_Pz,con_Fz,inc_Fz,con_Cz,inc_Cz,con_Pz,inc_Pz,erp_latency]
+        return output
+   
+    device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip = device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip
+    chans = dict(Fz=0,Cz=1,Pz=2,All=3)
+    chan_idx = chans[dispIMG_Channel]
+    avgERP = []
+    for i in range(len(scan_IDs)):
+        avgERP.append(averageProcessedEEG(device_version=device_version,scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,dispIMG=False))
+    avg_ERP = np.array(avgERP)
+    avgERP = np.mean(avg_ERP,axis=0)
+    if chan_idx==0:
+        plot_ERPs(destination_dir,avgERP[0],avgERP[1],avgERP[12],'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+    if chan_idx==1:
+        plot_ERPs(destination_dir,avgERP[2],avgERP[3],avgERP[12],'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+    if chan_idx==2:
+        plot_ERPs(destination_dir,avgERP[4],avgERP[5],avgERP[12],'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+    if chan_idx==3:
+        plot_ERPs(destination_dir,avgERP[0],avgERP[1],avgERP[12],'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[2],avgERP[3],avgERP[12],'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[4],avgERP[5],avgERP[12],'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+    return avgERP
