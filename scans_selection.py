@@ -134,18 +134,20 @@ def scanSelection(device_version,run_IDs_1,run_IDs_2,threshold,channel_name,loca
     new_acc_runIDs = [v for i, v in enumerate(merge_acc_runIDs) if i not in idx_none_duplicate_charIDs]
     new_acc_scores = [v for i, v in enumerate(merge_acc_scores) if i not in idx_none_duplicate_charIDs]
 
-    rolling_scores = slidingWindow(np.array(new_acc_scores),int(len(new_acc_runIDs)/2),int(len(new_acc_runIDs)/2)).T
-    rolling_runIDs = slidingWindow(np.array(new_acc_runIDs),int(len(new_acc_runIDs)/2),int(len(new_acc_runIDs)/2)).T
-    idx_bestPeaks = np.argmin(rolling_scores,axis=1)
-    bestPeaks_runIDs = [rolling_runIDs[i][j] for i,j in zip(range(len(rolling_runIDs)),idx_bestPeaks)]
-    accepted_runIDs = bestPeaks_runIDs+none_duplicate_runIDs
-
-    if dispMainStats == True:
+    if len(new_acc_runIDs) > 1:
+        rolling_scores = slidingWindow(np.array(new_acc_scores),int(len(new_acc_runIDs)/2),int(len(new_acc_runIDs)/2)).T
+        rolling_runIDs = slidingWindow(np.array(new_acc_runIDs),int(len(new_acc_runIDs)/2),int(len(new_acc_runIDs)/2)).T
+        idx_bestPeaks = np.argmin(rolling_scores,axis=1)
+        bestPeaks_runIDs = [rolling_runIDs[i][j] for i,j in zip(range(len(rolling_runIDs)),idx_bestPeaks)]
+        accepted_runIDs = bestPeaks_runIDs+none_duplicate_runIDs
         print("Number of",dem_class,"participants post-quality assessment:",len(accepted_runIDs))
-    else:
-        pass
-    print('\n')
-    return accepted_runIDs
+        print('\n')
+        return accepted_runIDs
+    if len(new_acc_runIDs) <= 1:
+        accepted_runIDs = new_acc_runIDs+none_duplicate_runIDs
+        print("Number of",dem_class,"participants post-quality assessment:",len(accepted_runIDs))
+        print("\n")
+        return accepted_runIDs
 
 
 
@@ -182,7 +184,9 @@ eight_run2_SEVD = dementia_classes.run2_scansSEVD_8
 
 
 threshold = 300
-localPath = '/Users/joshuaighalo/Downloads/EEG_Datasets/laurel_place/dataset'
+localPath = '/Users/joshuaighalo/Downloads/EEG_Datasets/laurel_place/cleaned_dataset'
+destinationPath = "/Users/joshuaighalo/Documents/BrainNet/Projects/Workspace/results/laurel place/quality scans"
+destinationFileName = "quality_scans_laurel_place.csv"
 version = 1.0
 channel = 'Cz'
 dispSubStats = True
@@ -212,3 +216,20 @@ eightMOD = scanSelection(version,eight_run1_MOD,eight_run2_MOD,threshold,channel
                         'moderate dementia','8-months',dispSubStats,dispMainStats)
 eightSEVD = scanSelection(version,eight_run1_SEVD,eight_run2_SEVD,threshold,channel,localPath,
                         'severe dementia','8-months',dispSubStats,dispMainStats)
+
+# export to csv
+df1 = pd.DataFrame({"Baseline No Dementia": baseND})
+df2 = pd.DataFrame({"Baseline Mild Dementia": baseMILD})
+df3 = pd.DataFrame({"Baseline Moderate Dementia": baseMOD})
+df4 = pd.DataFrame({"Baseline Severe Dementia": baseSEVD})
+df5 = pd.DataFrame({"4-months No Dementia": fourND})
+df6 = pd.DataFrame({"4-months Mild Dementia": fourMILD})
+df7 = pd.DataFrame({"4-months Moderate Dementia": fourMOD})
+df8 = pd.DataFrame({"4-months Severe Dementia": fourSEVD})
+df9 = pd.DataFrame({"8-months No Dementia": eightND})
+df10 = pd.DataFrame({"8-months Mild Dementia": eightMILD})
+df11 = pd.DataFrame({"8-months Moderate Dementia": eightMOD})
+df12 = pd.DataFrame({"8-months Severe Dementia": eightSEVD})
+df13 = pd.concat([df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12], ignore_index=False, axis=1)
+df13.to_csv(destinationPath + '/' + destinationFileName, index=False)
+print("Done")
