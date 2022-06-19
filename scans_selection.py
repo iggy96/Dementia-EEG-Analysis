@@ -16,6 +16,7 @@ import dementia_classes
 print("NOTES:")
 print("Pre-Quality Processing: Participants of each group have multiple scans per timepoints")
 print("Post-Quality Processing: Participants of each group are allocated just one scan")
+print("\n")
 
 
 def scanSelection(device_version,run_IDs_1,run_IDs_2,threshold,channel_name,local_path,dem_class,timepoint,dispSubStats,dispMainStats):
@@ -184,7 +185,7 @@ threshold = 300
 localPath = '/Users/joshuaighalo/Downloads/EEG_Datasets/laurel_place/dataset'
 version = 1.0
 channel = 'Cz'
-dispSubStats = False
+dispSubStats = True
 dispMainStats = True
 
 baseND = scanSelection(version,base_run1_ND,base_run2_ND,threshold,channel,localPath,
