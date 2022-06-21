@@ -135,12 +135,12 @@ def test(data_class, dataScans_TP,dataScans,scans):
 scansND_B = []
 for i in range(len(data_ND)):
     scansND_B.append(test(data_ND[i], dataScans_B,dataScans,scans))
-flatten_list = list(chain.from_iterable(scansND_B))
-init_scansND_B = [x[:-16] for x in flatten_list]
+scans_runs_ND_B = list(chain.from_iterable(scansND_B))
+init_scansND_B = [x[:-16] for x in scans_runs_ND_B]
 idx_run2_scansND_B = [idx for idx, item in enumerate(init_scansND_B) if item in init_scansND_B[:idx]]
 idx_run1_scansND_B = [idx for idx, item in enumerate(init_scansND_B) if item not in init_scansND_B[:idx]]
-run1_scansND_B  = [flatten_list[i] for i in idx_run1_scansND_B]
-run2_scansND_B  = [flatten_list[i] for i in idx_run2_scansND_B]
+run1_scansND_B  = [scans_runs_ND_B[i] for i in idx_run1_scansND_B]
+run2_scansND_B  = [scans_runs_ND_B[i] for i in idx_run2_scansND_B]
 
 
 
@@ -149,14 +149,12 @@ scansND_4 = []
 for i in range(len(data_ND)):
     scansND_4.append(test(data_ND[i], dataScans_4,dataScans,scans))
 scansND_4 = np.array(scansND_4,dtype=object)
-flatten_list = list(chain.from_iterable(scansND_4))
-init_scansND_4 = [x[:-16] for x in flatten_list]
+scans_runs_ND_4 = list(chain.from_iterable(scansND_4))
+init_scansND_4 = [x[:-16] for x in scans_runs_ND_4]
 idx_run2_scansND_4 = [idx for idx, item in enumerate(init_scansND_4) if item in init_scansND_4[:idx]]
 idx_run1_scansND_4 = [idx for idx, item in enumerate(init_scansND_4) if item not in init_scansND_4[:idx]]
-run1_scansND_4  = [flatten_list[i] for i in idx_run1_scansND_4]
-run2_scansND_4  = [flatten_list[i] for i in idx_run2_scansND_4]
-
-
+run1_scansND_4  = [scans_runs_ND_4[i] for i in idx_run1_scansND_4]
+run2_scansND_4  = [scans_runs_ND_4[i] for i in idx_run2_scansND_4]
 
 
 # no dementia (ND) scans at 8 months
@@ -164,12 +162,13 @@ scansND_8 = []
 for i in range(len(data_ND)):
     scansND_8.append(test(data_ND[i], dataScans_8,dataScans,scans))
 scansND_8 = np.array(scansND_8,dtype=object)
-flatten_list = list(chain.from_iterable(scansND_8))
-init_scansND_8 = [x[:-16] for x in flatten_list]
+scans_runs_ND_8 = list(chain.from_iterable(scansND_8))
+init_scansND_8 = [x[:-16] for x in scans_runs_ND_8]
 idx_run2_scansND_8 = [idx for idx, item in enumerate(init_scansND_8) if item in init_scansND_8[:idx]]
 idx_run1_scansND_8 = [idx for idx, item in enumerate(init_scansND_8) if item not in init_scansND_8[:idx]]
-run1_scansND_8  = [flatten_list[i] for i in idx_run1_scansND_8]
-run2_scansND_8  = [flatten_list[i] for i in idx_run2_scansND_8]
+run1_scansND_8  = [scans_runs_ND_8[i] for i in idx_run1_scansND_8]
+run2_scansND_8  = [scans_runs_ND_8[i] for i in idx_run2_scansND_8]
+
 
 #  scans of mild dementia across timepoints
 
@@ -178,24 +177,24 @@ scansMILD_B = []
 for i in range(len(data_MILD)):
     scansMILD_B.append(test(data_MILD[i], dataScans_B,dataScans,scans))
 scansMILD_B = np.array(scansMILD_B,dtype=object)
-flatten_list = list(chain.from_iterable(scansMILD_B))
-init_scansMILD_B = [x[:-16] for x in flatten_list]
+scans_runs_MILD_B = list(chain.from_iterable(scansMILD_B))
+init_scansMILD_B = [x[:-16] for x in scans_runs_MILD_B]
 idx_run2_scansMILD_B = [idx for idx, item in enumerate(init_scansMILD_B) if item in init_scansMILD_B[:idx]]
 idx_run1_scansMILD_B = [idx for idx, item in enumerate(init_scansMILD_B) if item not in init_scansMILD_B[:idx]]
-run1_scansMILD_B  = [flatten_list[i] for i in idx_run1_scansMILD_B]
-run2_scansMILD_B  = [flatten_list[i] for i in idx_run2_scansMILD_B]
+run1_scansMILD_B  = [scans_runs_MILD_B[i] for i in idx_run1_scansMILD_B]
+run2_scansMILD_B  = [scans_runs_MILD_B[i] for i in idx_run2_scansMILD_B]
 
 # mild dementia (MILD) scans at 4 months
 scansMILD_4 = []
 for i in range(len(data_MILD)):
     scansMILD_4.append(test(data_MILD[i], dataScans_4,dataScans,scans))
 scansMILD_4 = np.array(scansMILD_4,dtype=object)
-flatten_list = list(chain.from_iterable(scansMILD_4))
-init_scansMILD_4 = [x[:-16] for x in flatten_list]
+scans_runs_MILD_4 = list(chain.from_iterable(scansMILD_4))
+init_scansMILD_4 = [x[:-16] for x in scans_runs_MILD_4]
 idx_run2_scansMILD_4 = [idx for idx, item in enumerate(init_scansMILD_4) if item in init_scansMILD_4[:idx]]
 idx_run1_scansMILD_4 = [idx for idx, item in enumerate(init_scansMILD_4) if item not in init_scansMILD_4[:idx]]
-run1_scansMILD_4  = [flatten_list[i] for i in idx_run1_scansMILD_4]
-run2_scansMILD_4  = [flatten_list[i] for i in idx_run2_scansMILD_4]
+run1_scansMILD_4  = [scans_runs_MILD_4[i] for i in idx_run1_scansMILD_4]
+run2_scansMILD_4  = [scans_runs_MILD_4[i] for i in idx_run2_scansMILD_4]
 
 
 # mild dementia (MILD) scans at 8 months
@@ -203,12 +202,12 @@ scansMILD_8 = []
 for i in range(len(data_MILD)):
     scansMILD_8.append(test(data_MILD[i], dataScans_8,dataScans,scans))
 scansMILD_8 = np.array(scansMILD_8,dtype=object)
-flatten_list = list(chain.from_iterable(scansMILD_8))
-init_scansMILD_8 = [x[:-16] for x in flatten_list]
+scans_runs_MILD_8 = list(chain.from_iterable(scansMILD_8))
+init_scansMILD_8 = [x[:-16] for x in scans_runs_MILD_8]
 idx_run2_scansMILD_8 = [idx for idx, item in enumerate(init_scansMILD_8) if item in init_scansMILD_8[:idx]]
 idx_run1_scansMILD_8 = [idx for idx, item in enumerate(init_scansMILD_8) if item not in init_scansMILD_8[:idx]]
-run1_scansMILD_8  = [flatten_list[i] for i in idx_run1_scansMILD_8]
-run2_scansMILD_8  = [flatten_list[i] for i in idx_run2_scansMILD_8]
+run1_scansMILD_8  = [scans_runs_MILD_8[i] for i in idx_run1_scansMILD_8]
+run2_scansMILD_8  = [scans_runs_MILD_8[i] for i in idx_run2_scansMILD_8]
 
 
 #  scans of moderate dementia across timepoints
@@ -218,12 +217,12 @@ scansMOD_B = []
 for i in range(len(data_MOD)):
     scansMOD_B.append(test(data_MOD[i], dataScans_B,dataScans,scans))
 scansMOD_B = np.array(scansMOD_B,dtype=object)
-flatten_list = list(chain.from_iterable(scansMOD_B))
-init_scansMOD_B = [x[:-16] for x in flatten_list]
+scans_runs_MOD_B = list(chain.from_iterable(scansMOD_B))
+init_scansMOD_B = [x[:-16] for x in scans_runs_MOD_B]
 idx_run2_scansMOD_B = [idx for idx, item in enumerate(init_scansMOD_B) if item in init_scansMOD_B[:idx]]
 idx_run1_scansMOD_B = [idx for idx, item in enumerate(init_scansMOD_B) if item not in init_scansMOD_B[:idx]]
-run1_scansMOD_B  = [flatten_list[i] for i in idx_run1_scansMOD_B]
-run2_scansMOD_B  = [flatten_list[i] for i in idx_run2_scansMOD_B]
+run1_scansMOD_B  = [scans_runs_MOD_B[i] for i in idx_run1_scansMOD_B]
+run2_scansMOD_B  = [scans_runs_MOD_B[i] for i in idx_run2_scansMOD_B]
 
 
 # moderate dementia (MOD) scans at 4 months
@@ -231,12 +230,12 @@ scansMOD_4 = []
 for i in range(len(data_MOD)):
     scansMOD_4.append(test(data_MOD[i], dataScans_4,dataScans,scans))
 scansMOD_4 = np.array(scansMOD_4,dtype=object)
-flatten_list = list(chain.from_iterable(scansMOD_4))
-init_scansMOD_4 = [x[:-16] for x in flatten_list]
+scans_runs_MOD_4 = list(chain.from_iterable(scansMOD_4))
+init_scansMOD_4 = [x[:-16] for x in scans_runs_MOD_4]
 idx_run2_scansMOD_4 = [idx for idx, item in enumerate(init_scansMOD_4) if item in init_scansMOD_4[:idx]]
 idx_run1_scansMOD_4 = [idx for idx, item in enumerate(init_scansMOD_4) if item not in init_scansMOD_4[:idx]]
-run1_scansMOD_4  = [flatten_list[i] for i in idx_run1_scansMOD_4]
-run2_scansMOD_4  = [flatten_list[i] for i in idx_run2_scansMOD_4]
+run1_scansMOD_4  = [scans_runs_MOD_4[i] for i in idx_run1_scansMOD_4]
+run2_scansMOD_4  = [scans_runs_MOD_4[i] for i in idx_run2_scansMOD_4]
 
 
 # moderate dementia (MOD) scans at 8 months
@@ -244,12 +243,12 @@ scansMOD_8 = []
 for i in range(len(data_MOD)):
     scansMOD_8.append(test(data_MOD[i], dataScans_8,dataScans,scans))
 scansMOD_8 = np.array(scansMOD_8,dtype=object)
-flatten_list = list(chain.from_iterable(scansMOD_8))
-init_scansMOD_8 = [x[:-16] for x in flatten_list]
+scans_runs_MOD_8 = list(chain.from_iterable(scansMOD_8))
+init_scansMOD_8 = [x[:-16] for x in scans_runs_MOD_8]
 idx_run2_scansMOD_8 = [idx for idx, item in enumerate(init_scansMOD_8) if item in init_scansMOD_8[:idx]]
 idx_run1_scansMOD_8 = [idx for idx, item in enumerate(init_scansMOD_8) if item not in init_scansMOD_8[:idx]]
-run1_scansMOD_8  = [flatten_list[i] for i in idx_run1_scansMOD_8]
-run2_scansMOD_8  = [flatten_list[i] for i in idx_run2_scansMOD_8]
+run1_scansMOD_8  = [scans_runs_MOD_8[i] for i in idx_run1_scansMOD_8]
+run2_scansMOD_8  = [scans_runs_MOD_8[i] for i in idx_run2_scansMOD_8]
 
 
 #  scans of severe dementia across timepoints
@@ -259,12 +258,12 @@ scansSEVD_B = []
 for i in range(len(data_SEVD)):
     scansSEVD_B.append(test(data_SEVD[i], dataScans_B,dataScans,scans))
 scansSEVD_B = np.array(scansSEVD_B,dtype=object)
-flatten_list = list(chain.from_iterable(scansSEVD_B))
-init_scansSEVD_B = [x[:-16] for x in flatten_list]
+scans_runs_SEV_B = list(chain.from_iterable(scansSEVD_B))
+init_scansSEVD_B = [x[:-16] for x in scans_runs_SEV_B]
 idx_run2_scansSEVD_B = [idx for idx, item in enumerate(init_scansSEVD_B) if item in init_scansSEVD_B[:idx]]
 idx_run1_scansSEVD_B = [idx for idx, item in enumerate(init_scansSEVD_B) if item not in init_scansSEVD_B[:idx]]
-run1_scansSEVD_B  = [flatten_list[i] for i in idx_run1_scansSEVD_B]
-run2_scansSEVD_B  = [flatten_list[i] for i in idx_run2_scansSEVD_B]
+run1_scansSEVD_B  = [scans_runs_SEV_B[i] for i in idx_run1_scansSEVD_B]
+run2_scansSEVD_B  = [scans_runs_SEV_B[i] for i in idx_run2_scansSEVD_B]
 
 
 # severe dementia (SEVD) scans at 4 months
@@ -272,12 +271,12 @@ scansSEVD_4 = []
 for i in range(len(data_SEVD)):
     scansSEVD_4.append(test(data_SEVD[i], dataScans_4,dataScans,scans))
 scansSEVD_4 = np.array(scansSEVD_4,dtype=object)
-flatten_list = list(chain.from_iterable(scansSEVD_4))
-init_scansSEVD_4 = [x[:-16] for x in flatten_list]
+scans_runs_SEV_4 = list(chain.from_iterable(scansSEVD_4))
+init_scansSEVD_4 = [x[:-16] for x in scans_runs_SEV_4]
 idx_run2_scansSEVD_4 = [idx for idx, item in enumerate(init_scansSEVD_4) if item in init_scansSEVD_4[:idx]]
 idx_run1_scansSEVD_4 = [idx for idx, item in enumerate(init_scansSEVD_4) if item not in init_scansSEVD_4[:idx]]
-run1_scansSEVD_4  = [flatten_list[i] for i in idx_run1_scansSEVD_4]
-run2_scansSEVD_4  = [flatten_list[i] for i in idx_run2_scansSEVD_4]
+run1_scansSEVD_4  = [scans_runs_SEV_4[i] for i in idx_run1_scansSEVD_4]
+run2_scansSEVD_4  = [scans_runs_SEV_4[i] for i in idx_run2_scansSEVD_4]
 
 
 # severe dementia (SEVD) scans at 8 months
@@ -285,12 +284,12 @@ scansSEVD_8 = []
 for i in range(len(data_SEVD)):
     scansSEVD_8.append(test(data_SEVD[i], dataScans_8,dataScans,scans))
 scansSEVD_8 = np.array(scansSEVD_8,dtype=object)
-flatten_list = list(chain.from_iterable(scansSEVD_8))
-init_scansSEVD_8 = [x[:-16] for x in flatten_list]
+scans_runs_SEV_8 = list(chain.from_iterable(scansSEVD_8))
+init_scansSEVD_8 = [x[:-16] for x in scans_runs_SEV_8]
 idx_run2_scansSEVD_8 = [idx for idx, item in enumerate(init_scansSEVD_8) if item in init_scansSEVD_8[:idx]]
 idx_run1_scansSEVD_8 = [idx for idx, item in enumerate(init_scansSEVD_8) if item not in init_scansSEVD_8[:idx]]
-run1_scansSEVD_8  = [flatten_list[i] for i in idx_run1_scansSEVD_8]
-run2_scansSEVD_8  = [flatten_list[i] for i in idx_run2_scansSEVD_8]
+run1_scansSEVD_8  = [scans_runs_SEV_8[i] for i in idx_run1_scansSEVD_8]
+run2_scansSEVD_8  = [scans_runs_SEV_8[i] for i in idx_run2_scansSEVD_8]
 
 
 
