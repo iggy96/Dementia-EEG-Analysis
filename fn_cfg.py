@@ -1618,7 +1618,7 @@ def DWT(data,time_array,wavelet):
     return newEEG_global
 
 
-def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,cutoff,label,img_name,destination_dir):
+def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,label,img_name,destination_dir):
     """
     Functions generates averaged N100,P300 & N400 erps (std,dev,con & inc) from the combination of multiple eeg scans 
     Input:      1. device_version = neurocatch version
@@ -1628,7 +1628,7 @@ def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcu
     Output: averaged erps
     """
     print(label)
-    def averageProcessedEEG(device_version,scan_ID,local_path,fs,line,lowcut,highcut,stimTrig,clip,cutoff,dispIMG=False):
+    def averageProcessedEEG(device_version,scan_ID,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,dispIMG=False):
         device = importFile.neurocatch()
         fileObjects = device.init(device_version,scan_ID,local_path,dispIMG=False)
         rawEEG = fileObjects[0]
@@ -1644,27 +1644,32 @@ def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcu
         N4 = erps.N400(trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
         N1P3_Fz,N1P3_Cz,N1P3_Pz,N4_Fz,N4_Cz,N4_Pz = N1P3[0],N1P3[1],N1P3[2],N4[0],N4[1],N4[2]
         erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(N1P3_Fz[0]),dtype=object),dtype=object)
-        std_Fz = filtering.butter_lowpass(N1P3_Fz[0],cutoff=cutoff,fs=fs,order=4)
-        dev_Fz = filtering.butter_lowpass(N1P3_Fz[1],cutoff=cutoff,fs=fs,order=4)    
-        dev_Cz = filtering.butter_lowpass(N1P3_Cz[1],cutoff=cutoff,fs=fs,order=4)
-        std_Cz = filtering.butter_lowpass(N1P3_Cz[0],cutoff=cutoff,fs=fs,order=4)
-        dev_Pz = filtering.butter_lowpass(N1P3_Pz[1],cutoff=cutoff,fs=fs,order=4)
-        std_Pz = filtering.butter_lowpass(N1P3_Pz[0],cutoff=cutoff,fs=fs,order=4)
-        inc_Fz = filtering.butter_lowpass(N4_Fz[1],cutoff=cutoff,fs=fs,order=4)
-        con_Fz = filtering.butter_lowpass(N4_Fz[0],cutoff=cutoff,fs=fs,order=4)
-        inc_Cz = filtering.butter_lowpass(N4_Cz[1],cutoff=cutoff,fs=fs,order=4)
-        con_Cz = filtering.butter_lowpass(N4_Cz[0],cutoff=cutoff,fs=fs,order=4)
-        inc_Pz = filtering.butter_lowpass(N4_Pz[1],cutoff=cutoff,fs=fs,order=4)
-        con_Pz = filtering.butter_lowpass(N4_Pz[0],cutoff=cutoff,fs=fs,order=4)
+        cutoff = lowPassERP[1]
+        if lowPassERP==[True,cutoff]:
+            std_Fz = filtering.butter_lowpass(N1P3_Fz[0],cutoff=cutoff,fs=fs,order=4)
+            dev_Fz = filtering.butter_lowpass(N1P3_Fz[1],cutoff=cutoff,fs=fs,order=4)    
+            dev_Cz = filtering.butter_lowpass(N1P3_Cz[1],cutoff=cutoff,fs=fs,order=4)
+            std_Cz = filtering.butter_lowpass(N1P3_Cz[0],cutoff=cutoff,fs=fs,order=4)
+            dev_Pz = filtering.butter_lowpass(N1P3_Pz[1],cutoff=cutoff,fs=fs,order=4)
+            std_Pz = filtering.butter_lowpass(N1P3_Pz[0],cutoff=cutoff,fs=fs,order=4)
+            inc_Fz = filtering.butter_lowpass(N4_Fz[1],cutoff=cutoff,fs=fs,order=4)
+            con_Fz = filtering.butter_lowpass(N4_Fz[0],cutoff=cutoff,fs=fs,order=4)
+            inc_Cz = filtering.butter_lowpass(N4_Cz[1],cutoff=cutoff,fs=fs,order=4)
+            con_Cz = filtering.butter_lowpass(N4_Cz[0],cutoff=cutoff,fs=fs,order=4)
+            inc_Pz = filtering.butter_lowpass(N4_Pz[1],cutoff=cutoff,fs=fs,order=4)
+            con_Pz = filtering.butter_lowpass(N4_Pz[0],cutoff=cutoff,fs=fs,order=4)
+        elif lowPassERP==[False,False]:
+            std_Fz,dev_Fz,std_Cz,dev_Cz,std_Pz,dev_Pz,inc_Fz,con_Fz,inc_Cz,con_Cz,inc_Pz,con_Pz = N1P3_Fz[0],N1P3_Fz[1],N1P3_Cz[0],N1P3_Cz[1],N1P3_Pz[0],N1P3_Pz[1],N4_Fz[0],N4_Fz[1],N4_Cz[0],N4_Cz[1],N4_Pz[0],N4_Pz[1]
+
         output = [std_Fz,dev_Fz,std_Cz,dev_Cz,std_Pz,dev_Pz,con_Fz,inc_Fz,con_Cz,inc_Cz,con_Pz,inc_Pz,erp_latency]
         return output
    
-    device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,cutoff = device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,cutoff
+    device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP = device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP
     chans = dict(Fz=0,Cz=1,Pz=2,All=3)
     chan_idx = chans[dispIMG_Channel]
     avgERP = []
     for i in range(len(scan_IDs)):
-        avgERP.append(averageProcessedEEG(device_version=device_version,scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,cutoff=cutoff,dispIMG=False))
+        avgERP.append(averageProcessedEEG(device_version=device_version,scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,lowPassERP=lowPassERP,dispIMG=False))
     avg_ERP = np.array(avgERP)
     avgERP = np.mean(avg_ERP,axis=0)
     if chan_idx==0:
