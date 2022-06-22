@@ -881,7 +881,7 @@ class erpExtraction:
         out_final = []
         for i in range(len(channel_data.T)):
             out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
-        out_final = np.asarray(out_final).T
+        out_final = np.asarray(out_final,dtype=object).T
         out_final = out_final.transpose()
         return out_final
 
