@@ -511,13 +511,13 @@ class erpExtraction:
       Outputs: ERP data (samples, channels) for N100,P300 and N400
       Notes:   - The trigger channel is assumed to be the last channel in the data matrix
     """
-    def N100P300(self,trigger_channel,eegData,period,stimTrig,clip,dispIMG):
+    def N100P300(self,chanNames,scanID,trigger_channel,eegData,period,stimTrig,clip,dispIMG):
         """
           Inputs: trigger channels, bandpass filtered data for all channels, time period,
                   stimTrig, clip value
         """
-        trigger_channel,channel_data,period,stimTrig,clip,dispIMG = trigger_channel,eegData,period,stimTrig,clip,dispIMG
-        def algorithm(trigger_channel,channel_data,period,stimTrig,clip,dispIMG):
+        chanNames,scanID,trigger_channel,channel_data,period,stimTrig,clip,dispIMG = chanNames,scanID,trigger_channel,eegData,period,stimTrig,clip,dispIMG
+        def algorithm(chanNames,scanID,trigger_channel,channel_data,period,stimTrig,clip,dispIMG):
             trigger_data = rising_edge(trigger_channel)
             trigCol = trigger_data
             avg = channel_data 
@@ -604,14 +604,12 @@ class erpExtraction:
                     allArrays.append(myArray)
                 endVals = allArrays
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l = endVals
-                max_len = max([len(arr) for arr in l])
-                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-                    # appropriate end columns
-                endCols = padded
+                endVals = pd.DataFrame(endVals)
+                endVals.fillna(endVals.mean(),inplace=True)
+                endCols = endVals.values
                 
                 # merge the different sections of the epoch to form the epochs
-                trig_stdpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
+                trig_std = np.concatenate((startCols,desiredCols,endCols),axis=1)
             
             # ----------------------------------------------------------------------------------------------------------------
             # implement trig epoch creation to eeg data
@@ -664,12 +662,11 @@ class erpExtraction:
                     myArray = avg[int(idx_en11[:,x]):int(idx_en12[:,x])]
                     allArrays.append(myArray)
                 eeg_endVals = allArrays
+
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l_eeg = eeg_endVals
-                eeg_max_len = max([len(arr) for arr in l_eeg])
-                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-                    # appropriate end columns
-                eeg_endCols = eeg_padded
+                eeg_endVals = pd.DataFrame(eeg_endVals)
+                eeg_endVals.fillna(eeg_endVals.mean(),inplace=True)
+                eeg_endCols = eeg_endVals.values
                 
                 # merge the different sections of the epoch to form the epochs
                 epochs_std = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
@@ -696,9 +693,14 @@ class erpExtraction:
                     print("callback! epochs lost for std tone:","{:.2%}".format((int(dif))/100))
                 else:
                     pass
-                
-            # averaging
-            avg_std = np.mean(ar_std,axis=0)
+            
+            if ar_std.size == 0:
+                avg_std = np.zeros(len(bc_std.T))
+                print(chanNames,':',scanID," removed for standard tones N1P3 analysis as all its epochs exceed the clip value of",clip)
+            elif ar_std.size != 0:
+                # averaging
+                avg_std = np.mean(ar_std,axis=0)
+            avg_std = avg_std
 
             #%%
             # DEVIANT TONE [2]: extract the time points where stimuli 2 exists
@@ -780,11 +782,9 @@ class erpExtraction:
                     allArrays.append(myArray)
                 endVals = allArrays
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l = endVals
-                max_len = max([len(arr) for arr in l])
-                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-                    # appropriate end columns
-                endCols = padded
+                endVals = pd.DataFrame(endVals)
+                endVals.fillna(endVals.mean(),inplace=True)
+                endCols = endVals.values
                 
                     # merge the different sections of the epoch to form the epochs
                 trig_devpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
@@ -841,11 +841,9 @@ class erpExtraction:
                     allArrays.append(myArray)
                 eeg_endVals = allArrays
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l_eeg = eeg_endVals
-                eeg_max_len = max([len(arr) for arr in l_eeg])
-                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-                    # appropriate end columns
-                eeg_endCols = eeg_padded
+                eeg_endVals = pd.DataFrame(eeg_endVals)
+                eeg_endVals.fillna(eeg_endVals.mean(),inplace=True)
+                eeg_endCols = eeg_endVals.values
                 
                 # merge the different sections of the epoch to form the epochs
                 epochs_dev = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
@@ -874,24 +872,29 @@ class erpExtraction:
                 else:
                     pass
             
-            # averaging
-            avg_dev = np.mean(ar_dev,axis=0)
+            if ar_dev.size == 0:
+                avg_dev = np.zeros(len(bc_dev.T))
+                print(chanNames,':',scanID," removed for deviant tones N1P3 analysis as all its epochs exceed the clip value of",clip)
+            elif ar_dev.size != 0:
+                avg_dev = np.mean(ar_dev,axis=0)
+            avg_dev = avg_dev
             return avg_std,avg_dev,ar_std,ar_dev
         # algorithm function returns avg_std,avg_dev,ar_std,ar_dev
         out_final = []
         for i in range(len(channel_data.T)):
-            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
-        out_final = np.asarray(out_final,dtype=object).T
+            out_final.append(algorithm(chanNames[i],scanID,trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
+        out_final = np.asarray(out_final,dtype="object").T
         out_final = out_final.transpose()
         return out_final
 
-    def N400(self,trigger_channel,eegData,period,stimTrig,clip,dispIMG):
+    def N400(self,chanNames,scanID,trigger_channel,eegData,period,stimTrig,clip,dispIMG):
         """
           Inputs: trigger channels, bandpass filtered data for all channels, time period,
                   stimTrig, clip value
         """
-        trigger_channel,channel_data,period,stimTrig,clip,dispIMG = trigger_channel,eegData,period,stimTrig,clip,dispIMG
-        def algorithm(trigger_channel,channel_data,period,stimTrig,clip,dispIMG):
+        
+        chanNames,scanID,trigger_channel,channel_data,period,stimTrig,clip,dispIMG = chanNames,scanID,trigger_channel,eegData,period,stimTrig,clip,dispIMG
+        def algorithm(chanNames,scanID,trigger_channel,channel_data,period,stimTrig,clip,dispIMG):
             trigger_data = rising_edge(trigger_channel)
             trigCol = trigger_data
             avg = channel_data 
@@ -988,11 +991,9 @@ class erpExtraction:
                     allArrays.append(myArray)
                 endVals = allArrays
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l = endVals
-                max_len = max([len(arr) for arr in l])
-                padded = np.array([np.lib.pad(arr, (0, max_len - len(arr)), 'constant', constant_values=0) for arr in l])
-                    # appropriate end columns
-                endCols = padded
+                endVals = pd.DataFrame(endVals)
+                endVals.fillna(endVals.mean(),inplace=True)
+                endCols = endVals.values
                 
                 # merge the different sections of the epoch to form the epochs
                 trig_conpad = np.concatenate((startCols,desiredCols,endCols),axis=1)
@@ -1049,11 +1050,9 @@ class erpExtraction:
                     allArrays.append(myArray)
                 eeg_endVals = allArrays
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l_eeg = eeg_endVals
-                eeg_max_len = max([len(arr) for arr in l_eeg])
-                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-                    # appropriate end columns
-                eeg_endCols = eeg_padded
+                eeg_endVals = pd.DataFrame(eeg_endVals)
+                eeg_endVals.fillna(eeg_endVals.mean(),inplace=True)
+                eeg_endCols = eeg_endVals.values
                 
                 # merge the different sections of the epoch to form the epochs
                 epochs_con = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
@@ -1082,8 +1081,13 @@ class erpExtraction:
                 else:
                     pass
 
-            # averaging
-            avg_con = np.mean(ar_con,axis=0)
+            if ar_con.size == 0:
+                avg_con = np.zeros(len(bc_con.T))
+                print(chanNames,':',scanID," removed for congruent words N4 analysis as all its epochs exceed the clip value of",clip)
+            else:
+                # averaging
+                avg_con = np.mean(ar_con,axis=0)
+            avg_con = avg_con
             
             
             # %%
@@ -1241,11 +1245,9 @@ class erpExtraction:
                     allArrays.append(myArray)
                 eeg_endVals = allArrays
                     # add zeros to fill enable epochs of shorter length equal with epochs of adequate length
-                l_eeg = eeg_endVals
-                eeg_max_len = max([len(arr) for arr in l_eeg])
-                eeg_padded = np.array([np.lib.pad(arr, (0, eeg_max_len - len(arr)), 'constant', constant_values=0) for arr in l_eeg])
-                    # appropriate end columns
-                eeg_endCols = eeg_padded
+                eeg_endVals = pd.DataFrame(eeg_endVals)
+                eeg_endVals.fillna(eeg_endVals.mean(),inplace=True)
+                eeg_endCols = eeg_endVals.values
                 
                 # merge the different sections of the epoch to form the epochs
                 epochs_inc = np.concatenate((eeg_startCols,eeg_desiredCols,eeg_endCols),axis=1)
@@ -1272,17 +1274,24 @@ class erpExtraction:
                     print("callback! epochs lost for inc word:","{:.2%}".format((int(dif))/100))
                 else:
                     pass
-            # averaging
-            avg_inc = np.mean(ar_inc,axis=0)
+
+            if ar_inc.size == 0:
+                avg_inc = np.zeros(len(bc_inc.T))
+                print(chanNames,':',scanID," removed for incongruent words N4 analysis as all its epochs exceed the clip value of",clip)
+            else:
+                # averaging
+                avg_inc = np.mean(ar_inc,axis=0)
+            avg_inc = avg_inc
             return avg_con,avg_inc,ar_con,ar_inc
 
         # algorithm function returns avg_con,avg_inc,ar_con,ar_inc   
         out_final = []
         for i in range(len(channel_data.T)):
-            out_final.append(algorithm(trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
-        out_final = np.asarray(out_final).T
+            out_final.append(algorithm(chanNames[i],scanID,trigger_channel,channel_data[:,i],period,stimTrig,clip,dispIMG))
+        out_final = np.asarray(out_final,dtype="object").T
         out_final = out_final.transpose()
         return out_final
+
 
 def plot_ERPs(destination_dir,data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color_1,color_2,amp_range,img_name):
     """
@@ -1618,7 +1627,7 @@ def DWT(data,time_array,wavelet):
     return newEEG_global
 
 
-def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,label,img_name,destination_dir):
+def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,label,img_name,destination_dir):
     """
     Functions generates averaged N100,P300 & N400 erps (std,dev,con & inc) from the combination of multiple eeg scans 
     Input:      1. device_version = neurocatch version
@@ -1628,7 +1637,7 @@ def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcu
     Output: averaged erps
     """
     print(label)
-    def averageProcessedEEG(device_version,scan_ID,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,dispIMG=False):
+    def averageProcessedEEG(device_version,chanNames,scan_ID,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,dispIMG=False):
         device = importFile.neurocatch()
         fileObjects = device.init(device_version,scan_ID,local_path,dispIMG=False)
         rawEEG = fileObjects[0]
@@ -1640,8 +1649,8 @@ def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcu
         notchFilterOutput = filtering.notch(adaptiveFilterOutput,line,fs)
         bandPassFilterOutput = filtering.butterBandPass(notchFilterOutput,lowcut,highcut,fs)
         erps = erpExtraction()
-        N1P3 = erps.N100P300(trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
-        N4 = erps.N400(trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
+        N1P3 = erps.N100P300(chanNames,scan_ID,trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
+        N4 = erps.N400(chanNames,scan_ID,trigOutput,bandPassFilterOutput,time,stimTrig,clip,dispIMG=dispIMG)
         N1P3_Fz,N1P3_Cz,N1P3_Pz,N4_Fz,N4_Cz,N4_Pz = N1P3[0],N1P3[1],N1P3[2],N4[0],N4[1],N4[2]
         erp_latency = np.array(np.linspace(start=-100, stop=900, num=len(N1P3_Fz[0]),dtype=object),dtype=object)
         cutoff = lowPassERP[1]
@@ -1664,24 +1673,39 @@ def averageERPs(device_version,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcu
         output = [std_Fz,dev_Fz,std_Cz,dev_Cz,std_Pz,dev_Pz,con_Fz,inc_Fz,con_Cz,inc_Cz,con_Pz,inc_Pz,erp_latency]
         return output
    
-    device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP = device_version,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP
+    device_version,chanNames,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP = device_version,chanNames,scan_IDs,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP
     chans = dict(Fz=0,Cz=1,Pz=2,All=3)
     chan_idx = chans[dispIMG_Channel]
-    avgERP = []
-    for i in range(len(scan_IDs)):
-        avgERP.append(averageProcessedEEG(device_version=device_version,scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,lowPassERP=lowPassERP,dispIMG=False))
-    avg_ERP = np.array(avgERP)
-    avgERP = np.mean(avg_ERP,axis=0)
     if chan_idx==0:
+        avgERP = []
+        for i in range(len(scan_IDs)):
+            avgERP.append(averageProcessedEEG(device_version=device_version,chanNames=[chanNames[0]]*len(scan_IDs),scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,lowPassERP=lowPassERP,dispIMG=False))
+        avg_ERP = np.array(avgERP)
+        avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[0],avgERP[1],avgERP[12],'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
     if chan_idx==1:
+        avgERP = []
+        for i in range(len(scan_IDs)):
+            avgERP.append(averageProcessedEEG(device_version=device_version,chanNames=[chanNames[1]]*len(scan_IDs),scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,lowPassERP=lowPassERP,dispIMG=False))
+        avg_ERP = np.array(avgERP)
+        avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[2],avgERP[3],avgERP[12],'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
     if chan_idx==2:
+        avgERP = []
+        for i in range(len(scan_IDs)):
+            avgERP.append(averageProcessedEEG(device_version=device_version,chanNames=[chanNames[2]]*len(scan_IDs),scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,lowPassERP=lowPassERP,dispIMG=False))
+        avg_ERP = np.array(avgERP)
+        avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[4],avgERP[5],avgERP[12],'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
     if chan_idx==3:
+        avgERP = []
+        for i in range(len(scan_IDs)):
+            avgERP.append(averageProcessedEEG(device_version=device_version,chanNames=[chanNames]*len(scan_IDs),scan_ID=scan_IDs[i],local_path=local_path,fs=fs,line=line,lowcut=lowcut,highcut=highcut,stimTrig=stimTrig,clip=clip,lowPassERP=lowPassERP,dispIMG=False))
+        avg_ERP = np.array(avgERP)
+        avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[0],avgERP[1],avgERP[12],'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[2],avgERP[3],avgERP[12],'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
