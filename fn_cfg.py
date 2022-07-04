@@ -1292,7 +1292,6 @@ class erpExtraction:
         out_final = out_final.transpose()
         return out_final
 
-
 def plot_ERPs(destination_dir,data_1,data_2,latency,header,x_label,y_label,label_1,label_2,color_1,color_2,amp_range,img_name):
     """
     This plot function possesses an array of abilities
@@ -1712,3 +1711,33 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         plot_ERPs(destination_dir,avgERP[4],avgERP[5],avgERP[12],'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
     return avgERP
+
+def averageBandPower(data,arrayType,fs,low,high,win):
+    #  Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of filtered EEG data
+    #              or data - 3D numpy array (d0 = channels, d1 = no of windows, d2 = length of windows) of unfiltered EEG data
+    #              arrayType - '2D' or '3D'
+    #              fs      - sampling rate of hardware (defaults to config)
+    #              low     - lower limit in Hz for the brain wave
+    #              high    - upper limit in Hz for the brain wave
+    #              win     - size of window to be used for sliding
+    #   Output  :   3D array (columns of array,no of windows,window size)
+    def absPower(data,fs,low,high,win):                                                 
+        freqs, psd = signal.welch(data,fs,nperseg=win)
+        idx_freqBands = np.logical_and(freqs >= low, freqs <= high) 
+        freq_res = freqs[1] - freqs[0]                                  
+        freqBand_power = simps(psd[idx_freqBands],dx=freq_res)  
+        return freqBand_power
+    if arrayType=='2D':
+        avgBandPower = []
+        for i in range(len(data.T)):
+            avgBandPower.append(absPower(data[:,i],fs,low,high,win))
+        avgBandPower= np.array(avgBandPower).T
+    elif arrayType=='3D':
+        avgBandPower = []
+        for i in range(len(data)):
+            x = data[i,:,:]
+            for i in range(len(x)):
+                avgBandPower.append(absPower(x[i,:],fs,low,high,win))
+        avgBandPower= np.array(avgBandPower)
+        avgBandPower = avgBandPower.reshape(len(x),len(data))
+    return avgBandPower
