@@ -55,3 +55,4 @@ from scipy.stats import kurtosis
 from sklearn.metrics import mean_squared_error
 from datetime import datetime
 from itertools import chain
+import mne
