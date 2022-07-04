@@ -1626,7 +1626,6 @@ def DWT(data,time_array,wavelet):
         newEEG_global = newEEG_global
     return newEEG_global
 
-
 def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,label,img_name,destination_dir):
     """
     Functions generates averaged N100,P300 & N400 erps (std,dev,con & inc) from the combination of multiple eeg scans 
