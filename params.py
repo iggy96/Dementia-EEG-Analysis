@@ -11,6 +11,7 @@ step_size = 1280
 nfft = 500
 noverlap = 256
 
+
 # EEG parameters
 epoch = 1000  # ms - total window size
 prestim = 100  # ms - duration  of the baseline (pre-stimulus interval) within the epoch
