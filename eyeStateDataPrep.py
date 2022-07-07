@@ -86,7 +86,7 @@ def featureExtraction(data):
 def windowEEG(filename,local_dir):
     data = extractEDF(filename,local_dir)
     eeg_data = data[4]
-    win_eeg_data = rollingwindow(eeg_data,3200,3200)
+    win_eeg_data = rollingwindow(eeg_data,1600,1600) #10 seconds
     new_eeg = win_eeg_data.reshape(win_eeg_data.shape[0]*win_eeg_data.shape[1],win_eeg_data.shape[2])
     return new_eeg
 
@@ -136,4 +136,4 @@ features = np.vstack((features_EO,features_EC))
 
 
 df = pd.DataFrame({'std_delta':features[:,0],'std_theta':features[:,1],'std_alpha':features[:,2],'std_beta':features[:,3],'std_gamma':features[:,4],'rms_delta':features[:,5],'rms_theta':features[:,6],'rms_alpha':features[:,7],'rms_beta':features[:,8],'rms_gamma':features[:,9],'var_delta':features[:,10],'var_theta':features[:,11],'var_alpha':features[:,12],'var_beta':features[:,13],'var_gamma':features[:,14],'kurtosis_delta':features[:,15],'kurtosis_theta':features[:,16],'kurtosis_alpha':features[:,17],'kurtosis_beta':features[:,18],'kurtosis_gamma':features[:,19],'eye_status':features[:,20]})
-df.to_csv('/Users/joshuaighalo/Documents/BrainNet/Projects/Workspace/results/laurel place/ml_dataset/eye_open_close_windowed_dataset.csv',index=False)
+df.to_csv('/Users/joshuaighalo/Documents/BrainNet/Projects/Workspace/results/laurel place/ml_dataset/eye_status_10s.csv',index=False)
