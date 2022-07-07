@@ -133,7 +133,7 @@ zeros = zeros.reshape(zeros.shape[0],1)
 features_EO = np.hstack((features_EO,ones))
 features_EC = np.hstack((features_EC,zeros))
 features = np.vstack((features_EO,features_EC))
-
+np.random.shuffle(features)
 
 df = pd.DataFrame({'std_delta':features[:,0],'std_theta':features[:,1],'std_alpha':features[:,2],'std_beta':features[:,3],'std_gamma':features[:,4],'rms_delta':features[:,5],'rms_theta':features[:,6],'rms_alpha':features[:,7],'rms_beta':features[:,8],'rms_gamma':features[:,9],'var_delta':features[:,10],'var_theta':features[:,11],'var_alpha':features[:,12],'var_beta':features[:,13],'var_gamma':features[:,14],'kurtosis_delta':features[:,15],'kurtosis_theta':features[:,16],'kurtosis_alpha':features[:,17],'kurtosis_beta':features[:,18],'kurtosis_gamma':features[:,19],'eye_status':features[:,20]})
 df.to_csv('/Users/joshuaighalo/Documents/BrainNet/Projects/Workspace/results/laurel place/ml_dataset/eye_status_10s.csv',index=False)
