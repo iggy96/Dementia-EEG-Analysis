@@ -14,7 +14,7 @@ from scipy.fftpack import fft, dct
 from scipy.fft import fft, fftfreq
 from glob import glob
 import glob
-from scipy.stats import iqr
+from scipy.stats import iqr, kurtosis
 from scipy.stats import pearsonr
 from scipy.stats import spearmanr
 from sklearn.neural_network import MLPClassifier
@@ -54,3 +54,4 @@ from itertools import chain
 import mne
 import shutil
 import os
+import scipy.io
