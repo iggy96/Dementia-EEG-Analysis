@@ -27,14 +27,12 @@ from math import log10, floor
 import math 
 from scipy.signal import sosfiltfilt, butter 
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
-import os
 import csv
 from statsmodels.tsa.ar_model import AutoReg, ar_select_order
 from scipy.signal import lfilter
 import scipy.io
 from numpy import asscalar
 from IPython.display import display
-import dropbox
 import zipfile
 import json
 from IPython.display import clear_output
@@ -46,13 +44,13 @@ import seaborn as sns
 from datetime import datetime
 import numpy
 import itertools
-import os, sys
+import sys
 import pywt
 from pywt import wavedec, waverec
-from sklearn.cross_decomposition import CCA
-import emd
 from scipy.stats import kurtosis
 from sklearn.metrics import mean_squared_error
 from datetime import datetime
 from itertools import chain
 import mne
+import shutil
+import os
