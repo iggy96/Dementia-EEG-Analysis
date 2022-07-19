@@ -1681,7 +1681,7 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         avg_ERP = np.array(avgERP)
         avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[0],avgERP[1],avgERP[12],'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-        plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
     if chan_idx==1:
         avgERP = []
         for i in range(len(scan_IDs)):
@@ -1689,7 +1689,7 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         avg_ERP = np.array(avgERP)
         avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[2],avgERP[3],avgERP[12],'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-        plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
     if chan_idx==2:
         avgERP = []
         for i in range(len(scan_IDs)):
@@ -1697,7 +1697,7 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         avg_ERP = np.array(avgERP)
         avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[4],avgERP[5],avgERP[12],'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-        plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
     if chan_idx==3:
         avgERP = []
         for i in range(len(scan_IDs)):
@@ -1705,12 +1705,12 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         avg_ERP = np.array(avgERP)
         avgERP = np.mean(avg_ERP,axis=0)
         plot_ERPs(destination_dir,avgERP[0],avgERP[1],avgERP[12],'N1P3_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-        plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[6],avgERP[7],avgERP[12],'N4_Fz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[2],avgERP[3],avgERP[12],'N1P3_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-        plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
+        plot_ERPs(destination_dir,avgERP[8],avgERP[9],avgERP[12],'N4_Cz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
         plot_ERPs(destination_dir,avgERP[4],avgERP[5],avgERP[12],'N1P3_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-        plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','std','dev','b','r',10,img_name)
-    return avgERP
+        plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
+    return avgERP,avg_ERP
 
 def averageBandPower(data,arrayType,fs,low,high,win):
     #  Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of filtered EEG data
