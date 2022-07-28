@@ -490,19 +490,6 @@ def peaktopeak(data):
     p2p = a-b
     return p2p
 
-def quality_p2p(data):
-    # used for artifact rejection
-    def p2p(data):
-        a = np.amax(data,axis=0)
-        b = np.amin(data,axis=0)
-        p2p = a-b
-        return p2p
-    p2p_array = []
-    for i in range(len(data.T)):
-        p2p_array.append(p2p(data[:,i]))
-    p2p_array = np.array(p2p_array)
-    return p2p_array
-
 class erpExtraction:
     """
       Inputs: trigger data produced from rising_edge()
@@ -1317,16 +1304,6 @@ def plot_ERPs(destination_dir,data_1,data_2,latency,header,x_label,y_label,label
     plt.savefig(destination_dir+'/'+header+'_'+img_name+'.png',bbox_inches='tight')
     plt.show()
 
-def ptp_erpscan(peak_val,erp_data,subjs_data):
-    p2p = peaktopeak(erp_data.T)
-    result_1 = (np.where(p2p > peak_val))[0]
-    acpt_erp = np.delete(erp_data.T,(result_1),axis = 0)
-    result_2 = [~np.isnan(acpt_erp).any(axis=1)]
-    acpt_erp = acpt_erp[result_2]
-    acpt_subjs = np.delete(subjs_data,(result_1),axis = 0)
-    acpt_subjs = acpt_subjs[result_2]
-    return acpt_erp,acpt_subjs
-
 def spectogramPlot(data,fs,nfft,y_max,nOverlap,figsize,subTitles,title):
     #   Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of filtered EEG data
     #               fs      - sampling rate of hardware (defaults to config)
@@ -1712,32 +1689,3 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
     return avgERP,avg_ERP
 
-def averageBandPower(data,arrayType,fs,low,high,win):
-    #  Inputs  :   data    - 2D numpy array (d0 = samples, d1 = channels) of filtered EEG data
-    #              or data - 3D numpy array (d0 = channels, d1 = no of windows, d2 = length of windows) of unfiltered EEG data
-    #              arrayType - '2D' or '3D'
-    #              fs      - sampling rate of hardware (defaults to config)
-    #              low     - lower limit in Hz for the brain wave
-    #              high    - upper limit in Hz for the brain wave
-    #              win     - size of window to be used for sliding
-    #   Output  :   3D array (columns of array,no of windows,window size)
-    def absPower(data,fs,low,high,win):                                                 
-        freqs, psd = signal.welch(data,fs,nperseg=win)
-        idx_freqBands = np.logical_and(freqs >= low, freqs <= high) 
-        freq_res = freqs[1] - freqs[0]                                  
-        freqBand_power = simps(psd[idx_freqBands],dx=freq_res)  
-        return freqBand_power
-    if arrayType=='2D':
-        avgBandPower = []
-        for i in range(len(data.T)):
-            avgBandPower.append(absPower(data[:,i],fs,low,high,win))
-        avgBandPower= np.array(avgBandPower).T
-    elif arrayType=='3D':
-        avgBandPower = []
-        for i in range(len(data)):
-            x = data[i,:,:]
-            for i in range(len(x)):
-                avgBandPower.append(absPower(x[i,:],fs,low,high,win))
-        avgBandPower= np.array(avgBandPower)
-        avgBandPower = avgBandPower.reshape(len(x),len(data))
-    return avgBandPower
