@@ -1523,85 +1523,6 @@ def psdPlots(data,fs):
     #plt.xlim([0, freqs.max()])
     sns.despine()
 
-def DWT(data,time_array,wavelet):
-    #   Probability Mapping Based Artifact Detection and Wavelet Denoising based 
-    #   Artifact Removal from Scalp EEG for BCI Applications
-    #  Perform DWT on the data
-    #   Input: data - EEG data: 1D array (samples x channel)
-    #   Output: new signal: (samples x number of wavelets)
-    #           signal_global - new signal extracted after global threshold 
-    #           signal_std - new signal extracted after std threshold 
-    #   Reference:  choice of number of levels to threshold gotten from "Comparative Study of Wavelet-Based Unsupervised 
-    #               Ocular Artifact Removal Techniques for Single-Channel EEG Data"
-    
-    def dwt_only(data,wavelet):
-        def dwt(data,wavelet):
-            coeffs = wavedec(data,wavelet,level=10)
-            return np.array(coeffs,dtype=object).T
-
-        def global_threshold(data,coeffs):
-            def coeffs_approx(data,coeffs):
-                return (np.median(abs(coeffs[0]))/0.6745)*(np.sqrt(2*np.log(len(data))))
-            def coeffs_detail(data,coeffs):
-                return (np.median(abs(coeffs[1]))/0.6745)*(np.sqrt(2*np.log(len(data))))
-            arr_approx = coeffs_approx(data,coeffs)
-            arr_detail = coeffs_detail(data,coeffs)
-            return np.vstack((arr_approx,arr_detail))
-
-        def apply_threshold(coeffs,threshold):
-            def apply_threshold_approx(coeffs,threshold):
-                coeffs[0][abs(coeffs[0])>threshold[1]] = 0
-                coeffs_approx = coeffs[0]
-                return coeffs_approx
-            def apply_threshold_detail(coeffs,threshold):
-                coeffs = coeffs[1:len(coeffs)]
-                coeffs[0][abs(coeffs[0])>threshold[1]] = 0
-                coeffs[1][abs(coeffs[1])>threshold[1]] = 0
-                coeffs[2][abs(coeffs[2])>threshold[1]] = 0  # level 8
-                coeffs[3][abs(coeffs[3])>threshold[1]] = 0  # level 7
-                coeffs[4][abs(coeffs[4])>threshold[1]] = 0  # level 6
-                coeffs[5][abs(coeffs[5])>threshold[1]] = 0  # level 5
-                coeffs[6][abs(coeffs[6])>threshold[1]] = 0  # level 4
-                coeffs[7][abs(coeffs[7])>threshold[1]] = 0  # level 3
-                coeffs[8][abs(coeffs[8])>threshold[1]] = 0
-                coeffs[9][abs(coeffs[9])>threshold[1]] = 0
-                return coeffs
-            arr_approx = apply_threshold_approx(coeffs,threshold)
-            arr_detail = apply_threshold_detail(coeffs,threshold)
-            arr_detail = list(np.array(arr_detail).T)
-            arr_approx = arr_approx
-            coefs = arr_detail
-            (coefs).insert(0,arr_approx)
-            return coefs
-
-        def inv_dwt(coeffs,wavelet):
-            def inverse_dwt(coeffs,wavelet):
-                return waverec(coeffs,wavelet)
-            arr = (inverse_dwt(list(np.array(coeffs,dtype=object)),wavelet))
-            return  (np.array(arr).T)[:-1]
-
-        coeffs = dwt(data,wavelet)
-        threshold_global = global_threshold(data,coeffs)
-        coeffs_global = apply_threshold(coeffs,threshold_global)
-        signal_global = inv_dwt(coeffs_global,wavelet)
-        return signal_global
-
-    newEEG_global = []
-    for i in range(len(wavelet)):
-        newEEG_global.append((dwt_only(data,wavelet[i])))
-    newEEG_global = np.array(newEEG_global).T
-    if len(newEEG_global) != len(time_array):
-        if len(newEEG_global) > len(time_array):
-            diff = len(newEEG_global) - len(time_array)
-            newEEG_global = newEEG_global[:-diff,:]
-        elif len(newEEG_global) < len(time_array):
-            diff = len(time_array) - len(newEEG_global)
-            num_zeros = np.zeros((diff,len(newEEG_global[1])))
-            newEEG_global = np.append(newEEG_global,num_zeros,axis=0)
-    else:
-        newEEG_global = newEEG_global
-    return newEEG_global
-
 def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,line,lowcut,highcut,stimTrig,clip,lowPassERP,label,img_name,destination_dir):
     """
     Functions generates averaged N100,P300 & N400 erps (std,dev,con & inc) from the combination of multiple eeg scans 
@@ -1689,3 +1610,100 @@ def averageERPs(device_version,chanNames,scan_IDs,dispIMG_Channel,local_path,fs,
         plot_ERPs(destination_dir,avgERP[10],avgERP[11],avgERP[12],'N4_Pz','Latency (ms)','Amplitude (uV)','con','inc','b','r',10,img_name)
     return avgERP,avg_ERP
 
+def ica(data,fs):
+    """
+    input: samples x channels
+    output: samples x channels
+    """
+
+    #   Implement high pass filter @ 1Hz
+    def icaHighpass(data,cutoff,fs):
+        def params_fnc(data,cutoff,fs,order=4):
+            nyq = 0.5 * fs
+            normal_cutoff = cutoff / nyq
+            b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
+            y = signal.filtfilt(b, a, data)
+            return y
+        filterEEG = []
+        for i in range(len(data.T)):
+            filterEEG.append(params_fnc(data.T[i],cutoff,fs))
+        filterEEG = np.array(filterEEG).T
+        return filterEEG
+
+    def confidenceInterval(samples):
+    #   At 95% significance level, tN -1 = 2.201
+        means = np.mean(samples)
+        std_dev = np.std(samples)
+        standard_error = std_dev/np.sqrt(len(samples))
+        lower_95_perc_bound = means - 2.201*standard_error
+        upper_95_perc_bound = means + 2.201*standard_error
+        return upper_95_perc_bound
+
+    def setZeros(data,index):
+        def params(data):
+            return np.zeros(len(data))
+        zeros = []
+        for i in range(len(index)):
+            zeros.append(params(data.T[index[i]]))
+        zeros = np.array(zeros)
+        return zeros
+
+    hpEEG = icaHighpass(data,cutoff=1,fs=fs) 
+
+    #   Computing ICA components
+    ica = FastICA(n_components=3, random_state=0, tol=0.0001)
+    comps = ica.fit_transform(hpEEG)
+    comps_1 = comps[:,0]
+    comps_2 = comps[:,1]
+    comps_3 = comps[:,2]
+
+    #   Computing kurtosis of ICA weights
+    comps_1_kurtosis = kurtosis(comps_1)
+    comps_2_kurtosis = kurtosis(comps_2)
+    comps_3_kurtosis = kurtosis(comps_3)
+    comps_kurtosis = np.array([comps_1_kurtosis,comps_2_kurtosis,comps_3_kurtosis])
+
+    #   Computing skewness of ICA weights
+    comps_1_skew = skew(comps_1)
+    comps_2_skew = skew(comps_2)
+    comps_3_skew = skew(comps_3)
+    comps_skew = np.array([comps_1_skew,comps_2_skew,comps_3_skew])
+
+    #   Computing sample entropy of ICA weights
+    import antropy as ant
+    comps_1_sampEN = ant.sample_entropy(comps_1)
+    comps_2_sampEN = ant.sample_entropy(comps_2)
+    comps_3_sampEN = ant.sample_entropy(comps_3)
+    comps_sampEN = np.array([comps_1_sampEN,comps_2_sampEN,comps_3_sampEN])
+
+    #   Computing CI on to set threshold
+    threshold_kurt = confidenceInterval(comps_kurtosis)
+    threshold_skew = confidenceInterval(comps_skew)
+    threshold_sampEN = confidenceInterval(comps_sampEN)
+
+    "compare threshold with extracted parameter values"
+    #   Extract epochs
+    bool_ArtfCompsKurt = [comps_kurtosis>threshold_kurt]
+    idx_ArtfCompsKurt = np.asarray(np.where(bool_ArtfCompsKurt[0]==True))
+    bool_ArtfCompsSkew = [comps_skew>threshold_skew]
+    idx_ArtfCompsSkew = np.asarray(np.where(bool_ArtfCompsSkew[0]==True))
+    bool_ArtfCompsSampEN = [comps_sampEN>threshold_sampEN]
+    idx_ArtfCompsSampEN = np.asarray(np.where(bool_ArtfCompsSampEN[0]==True))
+
+    #   Merge index of components detected as artifacts by kurtosis, skewness, and sample entropy
+    idx_artf_comps = np.concatenate((idx_ArtfCompsKurt,idx_ArtfCompsSkew,idx_ArtfCompsSampEN),axis=1)
+    idx_artf_comps = np.unique(idx_artf_comps)
+
+    "Component identified as artifact is converted to arrays of zeros"
+    rejected_comps = setZeros(comps,idx_artf_comps)
+
+
+    "Return zero-ed ICs into the original windows per ICs"
+    for i in range(len(idx_artf_comps)):
+        idx_rejected_comps = np.arange(len(rejected_comps))
+        comps.T[idx_artf_comps[i]] = rejected_comps[idx_rejected_comps[i]]
+
+
+    "Recover clean signal from clean ICs"
+    restored = ica.inverse_transform(comps)
+    return restored
