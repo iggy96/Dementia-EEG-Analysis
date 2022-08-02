@@ -141,3 +141,16 @@ test =  signal_quality_index(restored[:,2],time,'test',dispIMG=True)
 test = signal_quality_index(rawEEG[:,2],time,'test',dispIMG=True)
 
 
+import pywt
+import numpy as np
+import matplotlib.pyplot as plt
+x = np.arange(512)
+y = np.sin(2*np.pi*x/32)
+coef, freqs=pywt.cwt(rawEEG[:,0],104/np.arange(1,60),'morl')
+plt.matshow(coef) # doctest: +SKIP
+plt.show() # doctest: +SKIP
+
+import numpy as np
+import pywt
+dt = 0.01  # 100 Hz sampling
+frequencies = pywt.scale2frequency('cmor1.5-1.0', [1, 2, 3, 4]) / dt
